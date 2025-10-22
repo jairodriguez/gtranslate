@@ -1590,11 +1590,8 @@ EOT;
         if($data['widget_look'] == 'dropdown' or $data['widget_look'] == 'globe' or $data['widget_look'] == 'lang_names' or $data['widget_look'] == 'lang_codes')
             $languages = $dropdown_languages;
 
-        $url_structure = 'none';
-        if($data['pro_version'])
-            $url_structure = 'sub_directory';
-        elseif($data['enterprise_version'])
-            $url_structure = 'sub_domain';
+        // Custom version: Use sub_directory from settings (default for Google Ads)
+        $url_structure = isset($data['url_structure']) ? $data['url_structure'] : 'sub_directory';
 
         $gt_settings = array(
             'default_language' => $data['default_language'],
