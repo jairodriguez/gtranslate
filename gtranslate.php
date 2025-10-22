@@ -515,14 +515,8 @@ function RefreshDoWidgetCode() {
     var globe_size = parseInt(jQuery('#globe_size').val());
     var globe_color = jQuery('#globe_color').val();
 
-    var pro_version = jQuery('#pro_version').prop('checked');
-    var enterprise_version = jQuery('#enterprise_version').prop('checked');
-
-    var url_structure = 'none';
-    if(pro_version)
-        url_structure = 'sub_directory';
-    else if(enterprise_version)
-        url_structure = 'sub_domain';
+    // Custom version: Always use sub_directory for Google Ads landing pages
+    var url_structure = 'sub_directory';
 
     var wrapper_selector = jQuery('#wrapper_selector').val();
 
