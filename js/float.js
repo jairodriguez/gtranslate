@@ -84,11 +84,13 @@
     if(!lang_array[current_lang])
         current_lang = default_language;
 
-    if(url_structure == 'none') {
+    if(url_structure == 'none' || url_structure == 'sub_directory') {
         widget_code += '<div id="google_translate_element2"></div>';
 
-        widget_css += "div.skiptranslate,#google_translate_element2{display:none!important}";
+        widget_css += "div.skiptranslate,#google_translate_element2,.goog-te-banner-frame{display:none!important}";
         widget_css += "body{top:0!important}";
+        widget_css += ".goog-te-banner-frame.skiptranslate{display:none!important}";
+        widget_css += "body{position:static!important;top:0!important}";
         widget_css += "font font{background-color:transparent!important;box-shadow:none!important;position:initial!important}";
     }
 
