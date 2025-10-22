@@ -183,6 +183,28 @@
             load_tlib();
             window.gt_translate_script.onload = function(){
                 doGTranslate(default_language+'|'+auto_lang);
+
+                // Preserve SEO-friendly sub-directory URL structure after translation
+                if(url_structure == 'sub_directory' && window.history && window.history.pushState) {
+                    setTimeout(function(){
+                        var current_path = window.location.pathname;
+                        var url_params = new URLSearchParams(window.location.search);
+                        var lang_code = url_params.get('gt_lang');
+
+                        if(lang_code && current_path.indexOf('/' + lang_code + '/') !== 0) {
+                            // Remove gt_lang parameter and construct clean sub-directory URL
+                            var clean_path = current_path;
+                            url_params.delete('gt_lang');
+                            var query_string = url_params.toString();
+
+                            // Build new URL: /es/page instead of /page?gt_lang=es
+                            var new_url = '/' + lang_code + clean_path;
+                            if(query_string) new_url += '?' + query_string;
+
+                            window.history.pushState({}, '', new_url);
+                        }
+                    }, 1000);
+                }
             };
         } else if(current_lang != default_language) {
             load_tlib();
@@ -237,9 +259,26 @@
 
     setTimeout(function(){document.querySelectorAll(u_class + ' .gt_float_switcher').forEach(function(e){e.style.opacity=1})},20);
     document.querySelectorAll(u_class + ' a[data-gt-lang]').forEach(function(e){e.addEventListener('click',function(evt){
-        if(url_structure == 'none') {
+        if(url_structure == 'none' || url_structure == 'sub_directory') {
             evt.preventDefault();
-            doGTranslate(default_language+'|'+e.getAttribute('data-gt-lang'));
+            var target_lang = e.getAttribute('data-gt-lang');
+            doGTranslate(default_language+'|'+target_lang);
+
+            // Update URL to maintain SEO-friendly sub-directory structure
+            if(url_structure == 'sub_directory' && window.history && window.history.pushState) {
+                setTimeout(function(){
+                    var current_path = window.location.pathname;
+                    // Remove existing language prefix if present
+                    var path_without_lang = current_path.replace(/^\/(af|sq|am|ar|hy|az|eu|be|bn|bs|bg|ca|ceb|ny|zh-CN|zh-TW|co|hr|cs|da|nl|en|eo|et|tl|fi|fr|fy|gl|ka|de|el|gu|ht|ha|haw|iw|hi|hmn|hu|is|ig|id|ga|it|ja|jw|kn|kk|km|ko|ku|ky|lo|la|lv|lt|lb|mk|mg|ms|ml|mt|mi|mr|mn|my|ne|no|ps|fa|pl|pt|pa|ro|ru|sm|gd|sr|st|sn|sd|si|sk|sl|so|es|su|sw|sv|tg|ta|te|th|tr|uk|ur|uz|vi|cy|xh|yi|yo|zu)\//, '/');
+
+                    // Build new clean URL with language prefix
+                    var new_url = target_lang == default_language ? path_without_lang : '/' + target_lang + path_without_lang;
+                    var query_string = window.location.search.replace(/[?&]gt_lang=[^&]*/g, '').replace(/^&/, '?');
+                    if(query_string && query_string !== '?') new_url += query_string;
+
+                    window.history.pushState({}, '', new_url);
+                }, 1000);
+            }
         }
         gt_update_float_language(e);
     })});
