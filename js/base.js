@@ -98,17 +98,32 @@
         });
     }
 
-    if(url_structure == 'none') {
+    // Auto-translation for sub-directory URLs (e.g., /es/page?gt_lang=es)
+    // Check if we have a gt_lang parameter from the URL rewrite handler
+    var url_params = new URLSearchParams(window.location.search);
+    var auto_lang = url_params.get('gt_lang');
+
+    if(url_structure == 'none' || url_structure == 'sub_directory') {
         function get_current_lang() {var keyValue = document.cookie.match('(^|;) ?googtrans=([^;]*)(;|$)');return keyValue ? keyValue[2].split('/')[2] : null;}
         function fire_event(element,event){try{if(document.createEventObject){var evt=document.createEventObject();element.fireEvent('on'+event,evt)}else{var evt=document.createEvent('HTMLEvents');evt.initEvent(event,true,true);element.dispatchEvent(evt)}}catch(e){}}
         function load_tlib(){if(!window.gt_translate_script){window.gt_translate_script=document.createElement('script');gt_translate_script.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit2';document.body.appendChild(gt_translate_script);}}
         window.doGTranslate = function(lang_pair){if(lang_pair.value)lang_pair=lang_pair.value;if(lang_pair=='')return;var lang=lang_pair.split('|')[1];if(get_current_lang() == null && lang == lang_pair.split('|')[0])return;var teCombo;var sel=document.getElementsByTagName('select');for(var i=0;i<sel.length;i++)if(sel[i].className.indexOf('goog-te-combo')!=-1){teCombo=sel[i];break;}if(document.getElementById('google_translate_element2')==null||document.getElementById('google_translate_element2').innerHTML.length==0||teCombo.length==0||teCombo.innerHTML.length==0){setTimeout(function(){doGTranslate(lang_pair)},500)}else{teCombo.value=lang;fire_event(teCombo,'change');fire_event(teCombo,'change')}}
         window.googleTranslateElementInit2=function(){new google.translate.TranslateElement({pageLanguage:default_language,autoDisplay:false},'google_translate_element2')};
 
-        if(current_lang != default_language)
+        // Auto-trigger translation if gt_lang parameter is present (from sub-directory URL)
+        if(auto_lang && auto_lang != default_language && languages.includes(auto_lang)) {
             load_tlib();
-        else
+            window.gt_translate_script.onload = function(){
+                doGTranslate(default_language+'|'+auto_lang);
+                document.querySelectorAll(u_class+'.gt-current-lang').forEach(function(e){e.classList.remove('gt-current-lang')});
+                var target_link = document.querySelector(u_class+'[data-gt-lang="'+auto_lang+'"]');
+                if(target_link) target_link.classList.add('gt-current-lang');
+            };
+        } else if(current_lang != default_language) {
+            load_tlib();
+        } else {
             document.querySelectorAll(u_class).forEach(function(e){e.addEventListener('pointerenter',load_tlib)});
+        }
 
         document.querySelectorAll(u_class).forEach(function(e){e.addEventListener('click', function(evt) {
             evt.preventDefault();

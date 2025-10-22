@@ -4,11 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-GTranslate is a WordPress plugin that provides website translation functionality using Google Translate. It supports 103+ languages and offers both free (on-the-fly client-side translation) and paid versions (server-side Translation Delivery Network with SEO features).
+**GTranslate Free - Custom** is a simplified WordPress translation plugin for Google Ads landing pages. It provides free client-side translation with clean sub-directory URLs (e.g., `example.com/es/page`) using Google's free Translate widget.
+
+**This is a custom fork** - all paid/pro features have been removed. Focus is on simplicity and zero-cost operation.
 
 **Key Technologies:**
 - PHP (WordPress plugin architecture)
 - Vanilla JavaScript (ES5/ES6 compatible)
+- Free Google Translate Widget API
+- .htaccess URL rewrites
 - CSS for styling language selectors
 - SVG flags for visual language indicators
 
@@ -37,20 +41,32 @@ GTranslate is a WordPress plugin that provides website translation functionality
    - SVG and PNG flags in multiple sizes (16, 24, 32, 48, svg)
    - 103+ language flags with alternative flags (USA, Brazil, Mexico, Quebec, Canada, Argentina, Colombia)
 
-### Translation Modes
+### Translation Mode: Hybrid Client-Side
 
-**Free Version (url_structure: 'none')**
-- Client-side translation using Google Translate Widget
-- JavaScript loads `translate.google.com/translate_a/element.js`
-- Uses `googtrans` cookie to persist language selection
-- Language changes trigger Google's TranslateElement
+**This custom version uses ONLY free client-side translation with clean URLs:**
 
-**Paid Versions (url_structure: 'sub_directory' or 'sub_domain')**
-- Server-side Translation Delivery Network (TDN)
-- Sub-directory: `example.com/es/page`
-- Sub-domain: `es.example.com/page`
-- Custom domains: `example.fr`, `example.de`
-- Translations cached on proxy servers
+1. **URL Rewrite** (.htaccess)
+   - Visitor requests: `example.com/es/landing-page`
+   - Rewrites to: `url_addon/gtranslate.php?glang=es&gurl=landing-page`
+
+2. **Smart Redirect** (PHP)
+   - `url_addon/gtranslate.php` redirects to: `example.com/landing-page?gt_lang=es`
+   - Sets `googtrans` cookie for persistence
+   - No external servers or API calls
+
+3. **Auto-Translation** (JavaScript)
+   - `js/base.js` detects `gt_lang` parameter
+   - Loads free Google Translate widget
+   - Auto-translates page client-side
+   - Uses `googtrans` cookie to persist selection
+
+**Key Differences from Original:**
+- ❌ No paid TDN servers (removed)
+- ❌ No sub-domain support (removed)
+- ❌ No server-side translation (removed)
+- ✅ Free Google Translate widget only
+- ✅ Clean URLs for Google Ads
+- ✅ Zero API costs
 
 ### Widget Rendering Flow
 

@@ -1,12 +1,12 @@
 <?php
 /*
-Plugin Name: GTranslate
-Plugin URI: https://gtranslate.io/?xyz=998
-Description: Translate your website and make it multilingual. For support visit <a href="https://wordpress.org/support/plugin/gtranslate">GTranslate Support Forum</a>.
-Version: 3.0.9
-Author: Translate AI Multilingual Solutions
-Author URI: https://gtranslate.io
-Text Domain: gtranslate
+Plugin Name: GTranslate Free - Custom
+Plugin URI: https://github.com/yourusername/gtranslate-custom
+Description: Free multilingual translation for your website with sub-directory URL support for Google Ads landing pages. Based on GTranslate.
+Version: 1.0.0
+Author: Custom Build
+Author URI: https://yourwebsite.com
+Text Domain: gtranslate-custom
 
 */
 
@@ -91,8 +91,8 @@ class GTranslate extends WP_Widget {
         if(is_admin())
             wp_enqueue_script('jquery');
 
-        // make sure main_lang is set correctly in config.php file
-        if($data['pro_version'] or $data['enterprise_version']) {
+        // make sure main_lang is set correctly in config.php file for sub-directory URLs
+        if($data['url_structure'] == 'sub_directory') {
             include dirname(__FILE__) . '/url_addon/config.php';
 
             if($main_lang != $data['default_language']) { // update main_lang in config.php
@@ -1657,8 +1657,9 @@ EOT;
         if(!is_array($data))
             $data = array();
 
-        $data['pro_version'] = isset($data['pro_version']) ? $data['pro_version'] : '';
-        $data['enterprise_version'] = isset($data['enterprise_version']) ? $data['enterprise_version'] : '';
+        // Removed: pro_version and enterprise_version (this is the free custom version)
+        // Set url_structure to sub_directory for Google Ads landing pages
+        $data['url_structure'] = isset($data['url_structure']) ? $data['url_structure'] : 'sub_directory';
         $data['wrapper_selector'] = isset($data['wrapper_selector']) ? $data['wrapper_selector'] : '.gtranslate_wrapper';
         $data['custom_domains'] = isset($data['custom_domains']) ? $data['custom_domains'] : '';
         $data['custom_domains_data'] = isset($data['custom_domains_data']) ? $data['custom_domains_data'] : '';
