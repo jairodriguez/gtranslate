@@ -692,6 +692,8 @@ jQuery('#select_language_label').val('$select_language_label');
 jQuery('#wrapper_selector').val('$wrapper_selector');
 jQuery('#show_in_menu').val('$show_in_menu');
 jQuery('#floating_language_selector').val('$floating_language_selector');
+jQuery('#translation_api_provider').val('$translation_api_provider');
+jQuery('#translation_cache_ttl').val('$translation_cache_ttl');
 jQuery('#float_switcher_open_direction').val('$float_switcher_open_direction');
 jQuery('#switcher_open_direction').val('$switcher_open_direction');
 jQuery('#native_language_names').attr('checked', '$native_language_names'.length > 0);
@@ -1134,6 +1136,86 @@ EOT;
 
         <div id="poststuff">
             <div class="postbox">
+                <h3 id="translation-api-settings"><?php esc_html_e('Translation API (Server-Side Translation for SEO)', 'gtranslate'); ?></h3>
+                <div class="inside">
+                    <p style="margin:10px 0;"><strong><?php esc_html_e('Configure a translation API for proper SEO:', 'gtranslate'); ?></strong></p>
+                    <ul style="margin-left:20px;list-style:disc;">
+                        <li><?php esc_html_e('Search engines see translated content (not English on /es/ URLs)', 'gtranslate'); ?></li>
+                        <li><?php esc_html_e('Links stay in chosen language when navigating', 'gtranslate'); ?></li>
+                        <li><?php esc_html_e('No URL redirects - clean /es/page URLs from start to finish', 'gtranslate'); ?></li>
+                        <li><?php esc_html_e('Fast: cached translations serve instantly', 'gtranslate'); ?></li>
+                    </ul>
+                    <table style="width:100%;margin-top:15px;" cellpadding="4">
+                        <tr>
+                            <td class="option_name" style="width:200px;"><?php esc_html_e('Translation API Provider', 'gtranslate'); ?>:</td>
+                            <td>
+                                <select id="translation_api_provider" name="translation_api_provider" style="width:250px;">
+                                    <option value=""><?php esc_html_e('None (Client-side fallback)', 'gtranslate'); ?></option>
+                                    <option value="deepl"><?php esc_html_e('DeepL API Free (500k chars/month)', 'gtranslate'); ?></option>
+                                    <option value="google"><?php esc_html_e('Google Cloud Translation API', 'gtranslate'); ?></option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr id="deepl_api_key_row" style="display:none;">
+                            <td class="option_name"><?php esc_html_e('DeepL API Key', 'gtranslate'); ?>:</td>
+                            <td>
+                                <input type="password" id="deepl_api_key" name="deepl_api_key" value="<?php echo esc_attr(isset($data['deepl_api_key']) ? $data['deepl_api_key'] : ''); ?>" style="width:400px;" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"/>
+                                <p class="description"><?php printf(esc_html__('Get free API key at %s (500,000 characters/month)', 'gtranslate'), '<a href="https://www.deepl.com/pro-api" target="_blank">deepl.com/pro-api</a>'); ?></p>
+                            </td>
+                        </tr>
+                        <tr id="google_api_key_row" style="display:none;">
+                            <td class="option_name"><?php esc_html_e('Google Cloud API Key', 'gtranslate'); ?>:</td>
+                            <td>
+                                <input type="password" id="google_translate_api_key" name="google_translate_api_key" value="<?php echo esc_attr(isset($data['google_translate_api_key']) ? $data['google_translate_api_key'] : ''); ?>" style="width:400px;" placeholder="AIzaSy..."/>
+                                <p class="description"><?php printf(esc_html__('Create API key in %s ($20 per 1M characters)', 'gtranslate'), '<a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>'); ?></p>
+                            </td>
+                        </tr>
+                        <tr id="cache_ttl_row" style="display:none;">
+                            <td class="option_name"><?php esc_html_e('Cache Duration (days)', 'gtranslate'); ?>:</td>
+                            <td>
+                                <input type="number" id="translation_cache_ttl" name="translation_cache_ttl" value="<?php echo esc_attr(isset($data['translation_cache_ttl']) ? $data['translation_cache_ttl'] : '30'); ?>" min="1" max="365" style="width:80px;"/> <?php esc_html_e('days', 'gtranslate'); ?>
+                                <p class="description"><?php esc_html_e('How long to cache translations (default: 30 days)', 'gtranslate'); ?></p>
+                            </td>
+                        </tr>
+                        <tr id="clear_cache_row" style="display:none;">
+                            <td class="option_name"><?php esc_html_e('Clear Cache', 'gtranslate'); ?>:</td>
+                            <td>
+                                <button type="button" id="clear_translation_cache" class="button"><?php esc_html_e('Clear All Translations Cache', 'gtranslate'); ?></button>
+                                <p class="description"><?php esc_html_e('Clear cached translations to force re-translation', 'gtranslate'); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                    <script>
+                    jQuery(document).ready(function($) {
+                        function updateAPIKeyFields() {
+                            var provider = $('#translation_api_provider').val();
+                            $('#deepl_api_key_row, #google_api_key_row, #cache_ttl_row, #clear_cache_row').hide();
+
+                            if(provider === 'deepl') {
+                                $('#deepl_api_key_row, #cache_ttl_row, #clear_cache_row').show();
+                            } else if(provider === 'google') {
+                                $('#google_api_key_row, #cache_ttl_row, #clear_cache_row').show();
+                            }
+                        }
+
+                        $('#translation_api_provider').change(updateAPIKeyFields);
+                        updateAPIKeyFields();
+
+                        $('#clear_translation_cache').click(function() {
+                            if(confirm('<?php esc_html_e('Are you sure you want to clear all cached translations?', 'gtranslate'); ?>')) {
+                                $.post(ajaxurl, {action: 'gtranslate_clear_cache'}, function(response) {
+                                    alert(response.data.message || '<?php esc_html_e('Cache cleared successfully', 'gtranslate'); ?>');
+                                });
+                            }
+                        });
+                    });
+                    </script>
+                </div>
+            </div>
+        </div>
+
+        <div id="poststuff">
+            <div class="postbox">
                 <h3 id="settings"><?php esc_html_e('Custom CSS', 'gtranslate'); ?> <a href="#TB_inline?width=700&height=170&inlineId=common-customization-tips-description" title="<?php esc_attr_e('Common customizations tips'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a></h3>
                 <div class="inside">
                     <textarea id="custom_css" name="custom_css" onchange="RefreshDoWidgetCode()" style="font-family:Monospace;font-size:11px;height:150px;width:565px;"><?php echo htmlspecialchars($custom_css, ENT_QUOTES, get_option('blog_charset')); ?></textarea><br />
@@ -1437,6 +1519,12 @@ EOT;
         $data['email_translation_debug'] = isset($_POST['email_translation_debug']) ? intval($_POST['email_translation_debug']) : '';
         $data['enable_cdn'] = isset($_POST['enable_cdn']) ? intval($_POST['enable_cdn']) : '';
         $data['show_in_menu'] = isset($_POST['show_in_menu']) ? sanitize_text_field($_POST['show_in_menu']) : '';
+
+        // Translation API settings
+        $data['translation_api_provider'] = isset($_POST['translation_api_provider']) ? sanitize_text_field($_POST['translation_api_provider']) : '';
+        $data['deepl_api_key'] = isset($_POST['deepl_api_key']) ? sanitize_text_field($_POST['deepl_api_key']) : '';
+        $data['google_translate_api_key'] = isset($_POST['google_translate_api_key']) ? sanitize_text_field($_POST['google_translate_api_key']) : '';
+        $data['translation_cache_ttl'] = isset($_POST['translation_cache_ttl']) ? intval($_POST['translation_cache_ttl']) : 30;
         $data['floating_language_selector'] = isset($_POST['floating_language_selector']) ? sanitize_text_field($_POST['floating_language_selector']) : 'no';
         $data['native_language_names'] = isset($_POST['native_language_names']) ? intval($_POST['native_language_names']) : '';
         $data['detect_browser_language'] = isset($_POST['detect_browser_language']) ? intval($_POST['detect_browser_language']) : '';

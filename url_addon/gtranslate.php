@@ -67,12 +67,72 @@ if($glang === $main_lang) {
     exit;
 }
 
-// For translated pages: serve the original page and let JavaScript handle translation
-// The JavaScript (base.js) will:
-// 1. Detect the language from the URL path
-// 2. Load the Google Translate widget
-// 3. Automatically translate the page using the free Google Translate service
+// Load WordPress to access settings
+if(file_exists(dirname(dirname(dirname(dirname(__FILE__)))) . '/wp-load.php')) {
+    require_once dirname(dirname(dirname(dirname(__FILE__)))) . '/wp-load.php';
+    $gt_settings = get_option('GTranslate');
+} else {
+    $gt_settings = array();
+}
 
+// Check if Translation API is configured
+$translation_api_provider = isset($gt_settings['translation_api_provider']) ? $gt_settings['translation_api_provider'] : '';
+$translation_api_key = '';
+
+if($translation_api_provider === 'deepl') {
+    $translation_api_key = isset($gt_settings['deepl_api_key']) ? $gt_settings['deepl_api_key'] : '';
+} elseif($translation_api_provider === 'google') {
+    $translation_api_key = isset($gt_settings['google_translate_api_key']) ? $gt_settings['google_translate_api_key'] : '';
+}
+
+// SERVER-SIDE TRANSLATION: If API key is configured, translate server-side
+if(!empty($translation_api_key)) {
+    require_once dirname(__FILE__) . '/translator.php';
+
+    // Build the original page URL
+    $protocol = ((isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1))
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'))
+        ? 'https' : 'http';
+
+    $host = $_SERVER['HTTP_HOST'];
+    $original_url = $protocol . '://' . $host . $page_url;
+
+    // Fetch original HTML
+    $ch = curl_init($original_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For local development
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('X-GT-INTERNAL: 1')); // Marker to prevent infinite loops
+    $original_html = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if($http_code !== 200 || empty($original_html)) {
+        // Failed to fetch original page - fallback to redirect
+        if($debug) {
+            error_log("Failed to fetch original page: $original_url (HTTP $http_code)");
+        }
+    } else {
+        // Translate HTML
+        $translator = new GT_Translator($main_lang, $glang, $translation_api_provider, $translation_api_key);
+        $translated_html = $translator->translate_html($original_html, $page_url);
+
+        if($translated_html !== false) {
+            // Success! Serve translated HTML
+            header('Content-Type: text/html; charset=UTF-8');
+            echo $translated_html;
+            exit;
+        } else {
+            // Translation failed - fallback to client-side
+            if($debug) {
+                error_log("Translation API failed for $page_url");
+            }
+        }
+    }
+}
+
+// FALLBACK: CLIENT-SIDE TRANSLATION (when no API key or server-side fails)
 // Build the target URL
 $protocol = ((isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1))
     || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'))
@@ -82,7 +142,6 @@ $host = $_SERVER['HTTP_HOST'];
 $target_url = $protocol . '://' . $host . $page_url;
 
 // Add a marker for the JavaScript to detect the target language
-// This will be read by base.js to automatically trigger translation
 if(strpos($page_url, '?') !== false) {
     $target_url .= '&gt_lang=' . $glang;
 } else {
@@ -90,12 +149,11 @@ if(strpos($page_url, '?') !== false) {
 }
 
 // Set a cookie so the language selection persists
-// Format: /auto/language_code (same as Google Translate widget expects)
 setcookie('googtrans', '/' . $main_lang . '/' . $glang, time() + (86400 * 30), '/');
 
 // Debug mode: log the redirect
 if($debug && is_writable(dirname(__FILE__))) {
-    $debug_info = date('Y-m-d H:i:s') . " - Redirect: /{$glang}/{$gurl} -> {$target_url}\n";
+    $debug_info = date('Y-m-d H:i:s') . " - Redirect (client-side): /{$glang}/{$gurl} -> {$target_url}\n";
     file_put_contents(dirname(__FILE__) . '/debug.txt', $debug_info, FILE_APPEND);
 }
 
