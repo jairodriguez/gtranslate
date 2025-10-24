@@ -451,48 +451,7 @@ if(language_codes2.length == 0)
     for(var key in gt_lang_array)
         language_codes2.push(key);
 
-function SyncCustomDomains() {
-    jQuery('#custom_domains_status_sync').show();
-
-    jQuery.ajax({
-        url: 'https://tdns.gtranslate.net/tdn-bin/load-custom-domains',
-        type: 'GET',
-        dataType: 'json',
-        headers: {"X-GT-Domain": window.gt_debug_main_domain||location.hostname},
-        success: function(data) {
-            jQuery('#custom_domains_status_sync').hide();
-
-            if(data.err) { // todo: nice alert box
-                if(data.err == 'no license')
-                    alert('No subscription found for "' + (window.gt_debug_main_domain||location.hostname) + '". Please subscribe at https://gtranslate.io/');
-                else if(data.err == 'no settings')
-                    alert('Make sure your subscription for "' + (window.gt_debug_main_domain||location.hostname) + '" has Language Hosting feature and Custom domains are configured in your GTranslate dashboard: https://my.gtranslate.io/settings#advanced');
-                else
-                    alert(data.err);
-
-                jQuery('#custom_domains').prop('checked', false);
-                RefreshDoWidgetCode();
-
-                return;
-            }
-
-            jQuery('#custom_domains_data').val(JSON.stringify(data));
-            jQuery('#custom_domains_list_tbl tr.lang_domain_row').remove();
-            for(l in data)
-                jQuery('#custom_domains_list_tbl tr:last').after('<tr class="lang_domain_row"><td>'+l+'</td><td>'+data[l]+'</td></tr>');
-            jQuery('.custom_domains_list').show();
-        },
-        error: function(e) {
-            alert('Something strange happened, please try again later.');
-
-            jQuery('#custom_domains').prop('checked', false);
-            RefreshDoWidgetCode();
-
-            jQuery('#custom_domains_status_sync').hide();
-            jQuery('.custom_domains_list').hide();
-        }
-    });
-}
+// SyncCustomDomains function removed - custom domains not supported in free version
 
 function RefreshDoWidgetCode() {
     var widget_look = jQuery('#widget_look').val();
@@ -722,8 +681,7 @@ function ShowWidgetPreview(widget_preview) {
     }, 1000);
 }
 
-jQuery('#pro_version').attr('checked', '$pro_version'.length > 0);
-jQuery('#enterprise_version').attr('checked', '$enterprise_version'.length > 0);
+// pro_version and enterprise_version removed in free custom version
 jQuery('#custom_domains').attr('checked', '$custom_domains'.length > 0);
 jQuery('#url_translation').attr('checked', '$url_translation'.length > 0);
 jQuery('#add_hreflang_tags').attr('checked', '$add_hreflang_tags'.length > 0);
@@ -755,26 +713,15 @@ jQuery('#dropdown_background_color').val('$dropdown_background_color');
 jQuery('#globe_size').val('$globe_size');
 jQuery('#globe_color').val('$globe_color');
 
-if(jQuery('#pro_version:checked').length || jQuery('#enterprise_version:checked').length) {
-    if(jQuery('#enterprise_version:checked').length) {
-        jQuery('#custom_domains_option').show();
-        if(jQuery('#custom_domains:checked').length)
-            jQuery('.custom_domains_list').show();
-        else
-            jQuery('.custom_domains_list').hide();
-    } else {
-        jQuery('#custom_domains_option').hide();
-        jQuery('.custom_domains_list').hide();
-    }
-
-    jQuery('#url_translation_option').show();
-    jQuery('#hreflang_tags_option').show();
-    jQuery('#email_translation_option').show();
-    if(jQuery('#email_translation:checked').length)
-        jQuery('#email_translation_debug_option').show();
-    else
-        jQuery('#email_translation_debug_option').hide();
-}
+// Custom version: hide pro/enterprise options
+jQuery('#custom_domains_option').hide();
+jQuery('#url_translation_option').hide();
+jQuery('#hreflang_tags_option').hide();
+jQuery('#email_translation_option').show();
+if(jQuery('#email_translation:checked').length)
+    jQuery('#email_translation_debug_option').show();
+else
+    jQuery('#email_translation_debug_option').hide();
 
 if('$widget_look' == 'dropdown' || '$widget_look' == 'flags_dropdown' || '$widget_look' == 'globe' || '$widget_look' == 'lang_names' || '$widget_look' == 'lang_codes') {
     jQuery('#dropdown_languages_option').show();
@@ -1043,16 +990,8 @@ EOT;
                         </td>
                     </tr>
                     <tr>
-                        <td class="option_name">* <?php esc_html_e('Sub-directory URL structure', 'gtranslate'); ?>:<br><code><small>https://example.com/<b>es</b>/</small></code></td>
-                        <td><input id="pro_version" name="pro_version" value="1" type="checkbox" onclick="if(jQuery('#pro_version').is(':checked') && jQuery('#enterprise_version').is(':checked'))jQuery('#enterprise_version').prop('checked', false);RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()"/> <a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" title="<?php esc_attr_e('If you already have a subscription, you can enable this.', 'gtranslate'); ?>" rel="noreferrer">* <?php esc_html_e('for paid plans only', 'gtranslate'); ?></a></td>
-                    </tr>
-                    <tr>
-                        <td class="option_name">* <?php esc_html_e('Sub-domain URL structure', 'gtranslate'); ?>:<br><code><small>https://<b>es</b>.example.com/</small></code></td>
-                        <td><input id="enterprise_version" name="enterprise_version" value="1" type="checkbox" onclick="if(jQuery('#pro_version').is(':checked') && jQuery('#enterprise_version').is(':checked'))jQuery('#pro_version').prop('checked', false);RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()"/> <a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" title="<?php esc_attr_e('If you already have a subscription, you can enable this.', 'gtranslate'); ?>" rel="noreferrer">* <?php esc_html_e('for paid plans only', 'gtranslate'); ?></a></td>
-                    </tr>
-                    <tr id="custom_domains_option" style="display:none;">
-                        <td class="option_name"><?php esc_html_e('Custom domains', 'gtranslate'); ?>:<br><code><small>https://example.<b>es</b>/</small></code></td>
-                        <td><input id="custom_domains" name="custom_domains" value="1" type="checkbox" onclick="if(jQuery('#custom_domains').is(':checked'))SyncCustomDomains();RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()"/> <span id="custom_domains_status_sync" style="display:none;"><span class="dashicons dashicons-update gt-icon-spin"></span> <?php esc_html_e('Synchronizing...', 'gtranslate'); ?></span> <input type="hidden" id="custom_domains_data" name="custom_domains_data" value="<?php echo esc_attr(stripslashes($data['custom_domains_data'])); ?>"></td>
+                        <td class="option_name"><?php esc_html_e('Sub-directory URL structure', 'gtranslate'); ?>:<br><code><small>https://example.com/<b>es</b>/</small></code></td>
+                        <td><strong><?php esc_html_e('Enabled by default', 'gtranslate'); ?></strong> <small>(<?php esc_html_e('Configure translation API below for server-side SEO', 'gtranslate'); ?>)</small></td>
                     </tr>
                     <tr id="url_translation_option" style="display:none;">
                         <td class="option_name"><?php esc_html_e('Enable URL Translation', 'gtranslate'); ?>:</td>
@@ -1085,18 +1024,6 @@ EOT;
                     <tr id="select_language_label_option" style="display:none">
                         <td class="option_name"><?php esc_html_e('Select language label', 'gtranslate'); ?>:</td>
                         <td><input id="select_language_label" name="select_language_label" type="text" onchange="RefreshDoWidgetCode()"/></td>
-                    </tr>
-                    <tr>
-                        <td class="option_name"><?php esc_html_e('Show in menu', 'gtranslate'); ?>: <a href="#TB_inline?width=700&height=150&inlineId=show-in-menu-option-description" title="<?php echo esc_attr_e('Learn more', 'gtranslate'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a><div id="show-in-menu-option-description" style="display:none"><p><?php printf(esc_html__('Show in menu option is best for %1$sFlags%2$s, %1$sFlags with language name%2$s, %1$sFlags with language code%2$s, %1$sLanguage names%2$s, %1$sLanguage codes%2$s widget looks.', 'gtranslate'), '<b>', '</b>'); ?></p><p><?php esc_html_e('Other looks most likely will require additional CSS rules to match your theme design.', 'gtranslate'); ?></p></div></td>
-                        <td>
-                            <select id="show_in_menu" name="show_in_menu">
-                                <option value="" selected> - <?php esc_html_e('None', 'gtranslate'); ?> - </option>
-                                <?php $menus = get_registered_nav_menus(); ?>
-                                <?php foreach($menus as $location => $description): ?>
-                                <option value="<?php echo $location; ?>"><?php echo $description; ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
                     </tr>
                     <tr>
                         <td class="option_name"><?php esc_html_e('Show floating language selector', 'gtranslate'); ?>: <a href="#TB_inline?width=700&height=150&inlineId=show-floating-language-selector-option-description" title="<?php echo esc_attr_e('Learn more', 'gtranslate'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a><div id="show-floating-language-selector-option-description" style="display:none"><p><?php printf(esc_html__('Show floating language selector option is the easiest and suitable for most websites. It is best for %1$sFloat%2$s, %1$sNice dropdown with flags%2$s, %1$sPopup%2$s, %1$sGlobe%2$s widget looks.', 'gtranslate'), '<b>', '</b>'); ?></p></div></td>
