@@ -1,9 +1,9 @@
 (function(){
-    var gt = window.gtranslateSettings || {};
+    var gt = window.jaitranslatorSettings || {};
     gt = gt[document.currentScript.getAttribute('data-gt-widget-id')] || gt;
 
     if(gt.default_language == null) {
-        console.log('gtranslateSettings is not properly initialized');
+        console.log('jaitranslatorSettings is not properly initialized');
         return;
     }
 
@@ -20,14 +20,14 @@
 
     var native_language_names = gt.native_language_names||false;
     var detect_browser_language = gt.detect_browser_language||false;
-    var wrapper_selector = gt.wrapper_selector||'.gtranslate_wrapper';
+    var wrapper_selector = gt.wrapper_selector||'.jaitranslator_wrapper';
 
     var custom_css = gt.custom_css||'';
     var lang_array = native_language_names && lang_array_native || lang_array_english;
 
     var u_class = '.gt_raw_link-'+Array.from('base'+wrapper_selector).reduce(function(h,c){return 0|(31*h+c.charCodeAt(0))},0).toString(36);
 
-    var widget_code = '<!-- GTranslate: https://gtranslate.com -->';
+    var widget_code = '<!-- JAITranslate: https://jaitranslator.com -->';
     var widget_css = custom_css;
 
     // helper functions
@@ -69,7 +69,7 @@
     }
 
     var add_css = document.createElement('style');
-    add_css.classList.add('gtranslate_css');
+    add_css.classList.add('jaitranslator_css');
     add_css.textContent = widget_css;
     document.head.appendChild(add_css);
 
@@ -107,14 +107,14 @@
         function get_current_lang() {var keyValue = document.cookie.match('(^|;) ?googtrans=([^;]*)(;|$)');return keyValue ? keyValue[2].split('/')[2] : null;}
         function fire_event(element,event){try{if(document.createEventObject){var evt=document.createEventObject();element.fireEvent('on'+event,evt)}else{var evt=document.createEvent('HTMLEvents');evt.initEvent(event,true,true);element.dispatchEvent(evt)}}catch(e){}}
         function load_tlib(){if(!window.gt_translate_script){window.gt_translate_script=document.createElement('script');gt_translate_script.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit2';document.body.appendChild(gt_translate_script);}}
-        window.doGTranslate = function(lang_pair){if(lang_pair.value)lang_pair=lang_pair.value;if(lang_pair=='')return;var lang=lang_pair.split('|')[1];if(get_current_lang() == null && lang == lang_pair.split('|')[0])return;var teCombo;var sel=document.getElementsByTagName('select');for(var i=0;i<sel.length;i++)if(sel[i].className.indexOf('goog-te-combo')!=-1){teCombo=sel[i];break;}if(document.getElementById('google_translate_element2')==null||document.getElementById('google_translate_element2').innerHTML.length==0||teCombo.length==0||teCombo.innerHTML.length==0){setTimeout(function(){doGTranslate(lang_pair)},500)}else{teCombo.value=lang;fire_event(teCombo,'change');fire_event(teCombo,'change')}}
+        window.doJAITranslate = function(lang_pair){if(lang_pair.value)lang_pair=lang_pair.value;if(lang_pair=='')return;var lang=lang_pair.split('|')[1];if(get_current_lang() == null && lang == lang_pair.split('|')[0])return;var teCombo;var sel=document.getElementsByTagName('select');for(var i=0;i<sel.length;i++)if(sel[i].className.indexOf('goog-te-combo')!=-1){teCombo=sel[i];break;}if(document.getElementById('google_translate_element2')==null||document.getElementById('google_translate_element2').innerHTML.length==0||teCombo.length==0||teCombo.innerHTML.length==0){setTimeout(function(){doJAITranslate(lang_pair)},500)}else{teCombo.value=lang;fire_event(teCombo,'change');fire_event(teCombo,'change')}}
         window.googleTranslateElementInit2=function(){new google.translate.TranslateElement({pageLanguage:default_language,autoDisplay:false},'google_translate_element2')};
 
         // Auto-trigger translation if gt_lang parameter is present (from sub-directory URL)
         if(auto_lang && auto_lang != default_language && languages.includes(auto_lang)) {
             load_tlib();
             window.gt_translate_script.onload = function(){
-                doGTranslate(default_language+'|'+auto_lang);
+                doJAITranslate(default_language+'|'+auto_lang);
                 document.querySelectorAll(u_class+'.gt-current-lang').forEach(function(e){e.classList.remove('gt-current-lang')});
                 var target_link = document.querySelector(u_class+'[data-gt-lang="'+auto_lang+'"]');
                 if(target_link) target_link.classList.add('gt-current-lang');
@@ -130,7 +130,7 @@
             document.querySelectorAll(u_class+'.gt-current-lang').forEach(function(e){e.classList.remove('gt-current-lang')});
             e.classList.add('gt-current-lang');
             var lang = e.getAttribute('data-gt-lang');
-            doGTranslate(default_language+'|'+lang);
+            doJAITranslate(default_language+'|'+lang);
 
             document.querySelectorAll(u_class+'.gt-current-wrapper').forEach(function(e){
                 var current_el = document.querySelector(u_class+'[data-gt-lang="'+lang+'"]');
@@ -158,7 +158,7 @@
             if(url_structure == 'none') {
                 load_tlib();
                 window.gt_translate_script.onload=function(){
-                    doGTranslate(default_language+'|'+preferred_language);
+                    doJAITranslate(default_language+'|'+preferred_language);
                     document.querySelectorAll(u_class+'.gt-current-lang').forEach(function(e){e.classList.remove('gt-current-lang')});
                     document.querySelector(u_class+'[data-gt-lang="'+preferred_language+'"]').classList.add('gt-current-lang');
                 };

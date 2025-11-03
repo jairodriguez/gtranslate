@@ -1,19 +1,19 @@
-# Installation Guide - GTranslate Free Custom
+# Installation Guide - JAI Free Translator
 
 ## Quick Start (3 Steps)
 
 ### Step 1: Upload Plugin to WordPress
 
 **Option A: Via WordPress Admin**
-1. Zip this entire directory: `zip -r gtranslate-custom.zip .`
+1. Zip this entire directory: `zip -r jai-free-translator.zip .`
 2. Go to WordPress Admin → Plugins → Add New → Upload Plugin
 3. Upload the zip file and click "Install Now"
 4. Click "Activate Plugin"
 
 **Option B: Via FTP/SSH**
-1. Upload this entire directory to: `/wp-content/plugins/gtranslate-custom/`
+1. Upload this entire directory to: `/wp-content/plugins/jai-free-translator/`
 2. Go to WordPress Admin → Plugins
-3. Find "GTranslate Free - Custom" and click "Activate"
+3. Find "JAI Free Translator" and click "Activate"
 
 ### Step 2: Configure .htaccess Rules
 
@@ -29,12 +29,12 @@
 **Your .htaccess should look like this:**
 
 ```apache
-# GTranslate Free - Custom rules
+# JAI Free Translator rules
 <IfModule mod_rewrite.c>
 RewriteEngine On
-### BEGIN GTranslate config ###
-[... GTranslate rules ...]
-### END GTranslate config ###
+### BEGIN JAI Translator config ###
+[... JAI Translator rules ...]
+### END JAI Translator config ###
 </IfModule>
 
 # BEGIN WordPress
@@ -47,14 +47,14 @@ RewriteEngine On
 **Important:** If you installed the plugin to a different directory, edit line 16 of the pasted rules:
 ```apache
 # Change this line if needed:
-RewriteRule ^(...) /wp-content/plugins/gtranslate-custom/url_addon/gtranslate.php?glang=$1&gurl=$2 [L,QSA]
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RewriteRule ^(...) /wp-content/plugins/jai-free-translator/url_addon/jai-translator.php?glang=$1&gurl=$2 [L,QSA]
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                     Adjust this path if different
 ```
 
 ### Step 3: Configure Plugin Settings
 
-1. Go to WordPress Admin → Settings → GTranslate
+1. Go to WordPress Admin → Settings → JAI Translator
 2. Select your **default language** (e.g., English)
 3. Select **target languages** you want to support
 4. Choose a **widget look** (dropdown, flags, float, etc.)
@@ -88,13 +88,13 @@ Try visiting these URLs (replace with your domain):
 **Page doesn't translate**
 - Open browser console (F12) and check for JavaScript errors
 - Verify plugin is activated in WordPress Admin → Plugins
-- Check that language is enabled in Settings → GTranslate
+- Check that language is enabled in Settings → JAI Translator
 - Try a different browser to rule out cache issues
 
 **Wrong path errors in .htaccess**
 - Edit `.htaccess` line 16 with your actual plugin path
-- Path should be relative to web root: `/wp-content/plugins/gtranslate-custom/`
-- If WordPress is in a subdirectory, include it: `/blog/wp-content/plugins/gtranslate-custom/`
+- Path should be relative to web root: `/wp-content/plugins/jai-free-translator/`
+- If WordPress is in a subdirectory, include it: `/blog/wp-content/plugins/jai-free-translator/`
 
 ## Google Ads Integration
 
@@ -126,7 +126,7 @@ All Google Translate languages supported. Use these language codes in URLs:
 
 ### Customizing Widget Appearance
 
-Go to Settings → GTranslate:
+Go to Settings → JAI Translator:
 - **Widget Look**: Dropdown, Flags, Float, Globe, Popup, etc.
 - **Flag Size**: 16px, 24px, 32px, or 48px
 - **Native Language Names**: Show "Español" instead of "Spanish"
@@ -136,20 +136,20 @@ Go to Settings → GTranslate:
 
 **Option 1: Widget Area**
 - Go to Appearance → Widgets
-- Drag "GTranslate" widget to your sidebar
+- Drag "JAI Translator" widget to your sidebar
 
 **Option 2: Shortcode**
-- Add `[gtranslate]` to any page/post
-- Or in PHP templates: `<?php echo do_shortcode('[gtranslate]'); ?>`
+- Add `[jaitranslator]` to any page/post
+- Or in PHP templates: `<?php echo do_shortcode('[jaitranslator]'); ?>`
 
 **Option 3: Menu Integration**
-- Settings → GTranslate
+- Settings → JAI Translator
 - "Show in menu" dropdown → Select your menu
 - Language selector appears in that menu
 
 ### Browser Language Auto-Detection
 
-Enable in Settings → GTranslate:
+Enable in Settings → JAI Translator:
 - Check "Auto switch to browser language"
 - Visitors with Spanish browser will see Spanish automatically
 - Only triggers once per visitor (uses localStorage)
@@ -157,8 +157,8 @@ Enable in Settings → GTranslate:
 ## File Structure
 
 ```
-gtranslate-custom/
-├── gtranslate.php          # Main plugin file
+jai-free-translator/
+├── jai-translator.php          # Main plugin file
 ├── js/
 │   ├── base.js             # Core JavaScript (auto-translation logic)
 │   ├── dropdown.js         # Dropdown widget
@@ -166,8 +166,8 @@ gtranslate-custom/
 │   └── ...                 # Other widget types
 ├── url_addon/
 │   ├── config.php          # Language configuration
-│   ├── gtranslate.php      # URL redirect handler
-│   └── gtranslate-email.php # WooCommerce email translation
+│   ├── jai-translator.php      # URL redirect handler
+│   └── translator.php      # Server-side translation engine
 ├── flags/                   # SVG/PNG flags (103 languages)
 ├── .htaccess-ready         # Ready-to-use rewrite rules
 ├── INSTALLATION.md         # This file
@@ -177,11 +177,10 @@ gtranslate-custom/
 
 ## Support
 
-This is a custom build based on the original GTranslate plugin. For:
-- **Original plugin issues:** https://wordpress.org/support/plugin/gtranslate
-- **Custom build questions:** Check README_CUSTOM.md and CLAUDE.md
+This is JAI Free Translator - a custom WordPress translation plugin. For:
+- **Plugin questions:** Check README_CUSTOM.md and CLAUDE.md
 - **Google Translate issues:** https://support.google.com/translate
 
 ## License
 
-GPL v2 or later (inherited from original GTranslate plugin)
+GPL v2 or later

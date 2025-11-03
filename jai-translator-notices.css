@@ -1,4 +1,4 @@
-.gt-admin-notice {
+.jt-admin-notice {
     background: #fff;
     border-color: #ED494D;
     border-top: 4px;
@@ -7,10 +7,10 @@
     padding: 10px 40px 10px 145px;
     position: relative;
 }
-.gt-admin-notice a {
+.jt-admin-notice a {
     color: #ED494D;
 }
-.gt-notice-logo {
+.jt-notice-logo {
     clear: both;
     content: "";
     display: block;
@@ -24,33 +24,33 @@
     bottom: 0;
     left: 5px;
 }
-.gt-admin-notice > .dashicons {
+.jt-admin-notice > .dashicons {
     color: #424242;
     position: absolute;
     right: 20px;
     top: 40%;
 }
-.gt-notice-title {
+.jt-notice-title {
     font-size: 24px;
     margin: 0;
 }
-.gt-notice-body {
+.jt-notice-body {
     font-weight: normal;
     margin: 5px 0;
 }
-.gt-notice-body:after {
+.jt-notice-body:after {
     clear: both;
     content: "";
     display: block;
 }
-.gt-notice-body li {
+.jt-notice-body li {
     float: left;
     margin-right: 20px;
 }
-.gt-notice-body .dashicons {
+.jt-notice-body .dashicons {
     font-size: 17px;
     vertical-align: middle;
 }
-.gt-red {
+.jt-red {
     color: #ED494D;
 }

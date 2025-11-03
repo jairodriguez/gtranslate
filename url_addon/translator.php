@@ -1,11 +1,11 @@
 <?php
 /**
- * GTranslate Server-Side Translation Engine
+ * JAI Free Translator - Server-Side Translation Engine
  *
  * Handles HTML translation via DeepL API or Google Cloud Translation API
  * with intelligent caching and link rewriting for SEO-friendly multilingual sites.
  *
- * @package GTranslate
+ * @package JAI_Free_Translator
  * @version 1.0.0
  */
 
@@ -58,7 +58,13 @@ class GT_Translator {
         $dom = $this->parse_html($html);
         $texts = $this->extract_text_nodes($dom);
 
+        error_log('Translation debug - Extracted ' . count($texts) . ' text nodes');
+        if (!empty($texts)) {
+            error_log('First 3 texts: ' . implode(' | ', array_slice($texts, 0, 3)));
+        }
+
         if (empty($texts)) {
+            error_log('Translation debug - No texts found, HTML length: ' . strlen($html));
             return $html; // No text to translate
         }
 
@@ -93,16 +99,11 @@ class GT_Translator {
         // Suppress warnings for malformed HTML
         libxml_use_internal_errors(true);
 
-        // Load HTML with UTF-8 encoding
-        $dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        // Add meta charset to ensure proper UTF-8 handling
+        $html_with_charset = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $html . '</body></html>';
 
-        // Remove the XML declaration
-        foreach ($dom->childNodes as $node) {
-            if ($node->nodeType === XML_PI_NODE) {
-                $dom->removeChild($node);
-                break;
-            }
-        }
+        // Load HTML with UTF-8 encoding
+        $dom->loadHTML(mb_convert_encoding($html_with_charset, 'HTML-ENTITIES', 'UTF-8'));
 
         libxml_clear_errors();
 
@@ -260,9 +261,22 @@ class GT_Translator {
             ));
         } else {
             // DeepL API uses form data
+            // Special handling for arrays: DeepL expects text=A&text=B not text[0]=A&text[1]=B
+            $post_fields = '';
+            foreach ($data as $key => $value) {
+                if (is_array($value)) {
+                    foreach ($value as $item) {
+                        $post_fields .= urlencode($key) . '=' . urlencode($item) . '&';
+                    }
+                } else {
+                    $post_fields .= urlencode($key) . '=' . urlencode($value) . '&';
+                }
+            }
+            $post_fields = rtrim($post_fields, '&');
+
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
         }
 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -390,7 +404,20 @@ class GT_Translator {
      * Serialize DOM back to HTML
      */
     private function serialize_html($dom) {
-        return $dom->saveHTML();
+        // Since we wrapped content in html/body tags during parsing,
+        // we need to extract just the body innerHTML
+        $body = $dom->getElementsByTagName('body')->item(0);
+
+        if (!$body) {
+            return $dom->saveHTML();
+        }
+
+        $html = '';
+        foreach ($body->childNodes as $node) {
+            $html .= $dom->saveHTML($node);
+        }
+
+        return $html;
     }
 
     /**

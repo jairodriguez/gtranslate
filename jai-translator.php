@@ -1,16 +1,17 @@
 <?php
 /*
-Plugin Name: GTranslate Free - Custom
-Plugin URI: https://github.com/yourusername/gtranslate-custom
-Description: Free multilingual translation for your website with sub-directory URL support for Google Ads landing pages. Based on GTranslate.
-Version: 1.0.0
-Author: Custom Build
-Author URI: https://yourwebsite.com
-Text Domain: gtranslate-custom
+Plugin Name: JAI Free Translator
+Plugin URI: https://withjai.com
+Description: Free multilingual translation for your website with sub-directory URL support for Google Ads landing pages.
+Version: 1.1.0
+Author: JAI
+Author URI: https://withjai.com
+Text Domain: jai-free-translator
 
 */
 
-/*  Copyright 2010 - 2022 GTranslate Inc. ( website: https://gtranslate.com )
+/*  Free version with sub-directory URL support for Google Ads landing pages
+    Custom translation plugin for JAI
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,65 +28,209 @@ Text Domain: gtranslate-custom
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-add_action('widgets_init', array('GTranslate', 'register'));
-register_activation_hook(__FILE__, array('GTranslate', 'activate'));
-register_deactivation_hook(__FILE__, array('GTranslate', 'deactivate'));
-add_filter('plugin_action_links_' . plugin_basename(__FILE__), array('GTranslate', 'settings_link'));
-add_action('admin_menu', array('GTranslate', 'admin_menu'));
-add_action('init', array('GTranslate', 'enqueue_scripts'));
-add_action('plugins_loaded', array('GTranslate', 'load_textdomain'));
-add_action('send_headers', array('GTranslate', 'set_dns_prefetch_header'));
-add_filter('script_loader_tag', array('GTranslate', 'add_script_attributes'), 10, 3);
-add_filter('walker_nav_menu_start_el', array('GTranslate', 'render_menu_items') , 10 , 4);
-add_shortcode('GTranslate', array('GTranslate', 'render_shortcode'));
-add_shortcode('gtranslate', array('GTranslate', 'render_shortcode'));
-add_shortcode('gt-link', array('GTranslate', 'render_single_item'));
+add_action('widgets_init', array('JAI_Translator', 'register'));
+register_activation_hook(__FILE__, array('JAI_Translator', 'activate'));
+register_deactivation_hook(__FILE__, array('JAI_Translator', 'deactivate'));
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), array('JAI_Translator', 'settings_link'));
+add_action('admin_menu', array('JAI_Translator', 'admin_menu'));
+add_action('init', array('JAI_Translator', 'enqueue_scripts'));
+add_action('plugins_loaded', array('JAI_Translator', 'load_textdomain'));
+add_action('init', array('JAI_Translator', 'add_rewrite_rules'), 1);
+add_filter('rewrite_rules_array', array('JAI_Translator', 'add_language_rewrite_rules'), 10, 1);
+add_action('send_headers', array('JAI_Translator', 'set_dns_prefetch_header'));
+add_filter('script_loader_tag', array('JAI_Translator', 'add_script_attributes'), 10, 3);
+add_filter('walker_nav_menu_start_el', array('JAI_Translator', 'render_menu_items') , 10 , 4);
+add_filter('redirect_canonical', array('JAI_Translator', 'prevent_language_url_redirect'), 10, 2);
+add_action('template_redirect', array('JAI_Translator', 'handle_server_side_translation'), -9999);
+add_shortcode('JAITranslator', array('JAI_Translator', 'render_shortcode'));
+add_shortcode('jaitranslator', array('JAI_Translator', 'render_shortcode'));
+add_shortcode('jt-link', array('JAI_Translator', 'render_single_item'));
 
-class GTranslate extends WP_Widget {
+class JAI_Translator extends WP_Widget {
     public static $lang_array = array('en'=>'English','ar'=>'Arabic','bg'=>'Bulgarian','zh-CN'=>'Chinese (Simplified)','zh-TW'=>'Chinese (Traditional)','hr'=>'Croatian','cs'=>'Czech','da'=>'Danish','nl'=>'Dutch','fi'=>'Finnish','fr'=>'French','de'=>'German','el'=>'Greek','hi'=>'Hindi','it'=>'Italian','ja'=>'Japanese','ko'=>'Korean','no'=>'Norwegian','pl'=>'Polish','pt'=>'Portuguese','ro'=>'Romanian','ru'=>'Russian','es'=>'Spanish','sv'=>'Swedish','ca'=>'Catalan','tl'=>'Filipino','iw'=>'Hebrew','id'=>'Indonesian','lv'=>'Latvian','lt'=>'Lithuanian','sr'=>'Serbian','sk'=>'Slovak','sl'=>'Slovenian','uk'=>'Ukrainian','vi'=>'Vietnamese','sq'=>'Albanian','et'=>'Estonian','gl'=>'Galician','hu'=>'Hungarian','mt'=>'Maltese','th'=>'Thai','tr'=>'Turkish','fa'=>'Persian','af'=>'Afrikaans','ms'=>'Malay','sw'=>'Swahili','ga'=>'Irish','cy'=>'Welsh','be'=>'Belarusian','is'=>'Icelandic','mk'=>'Macedonian','yi'=>'Yiddish','hy'=>'Armenian','az'=>'Azerbaijani','eu'=>'Basque','ka'=>'Georgian','ht'=>'Haitian Creole','ur'=>'Urdu','bn' => 'Bengali','bs' => 'Bosnian','ceb' => 'Cebuano','eo' => 'Esperanto','gu' => 'Gujarati','ha' => 'Hausa','hmn' => 'Hmong','ig' => 'Igbo','jw' => 'Javanese','kn' => 'Kannada','km' => 'Khmer','lo' => 'Lao','la' => 'Latin','mi' => 'Maori','mr' => 'Marathi','mn' => 'Mongolian','ne' => 'Nepali','pa' => 'Punjabi','so' => 'Somali','ta' => 'Tamil','te' => 'Telugu','yo' => 'Yoruba','zu' => 'Zulu','my' => 'Myanmar (Burmese)','ny' => 'Chichewa','kk' => 'Kazakh','mg' => 'Malagasy','ml' => 'Malayalam','si' => 'Sinhala','st' => 'Sesotho','su' => 'Sundanese','tg' => 'Tajik','uz' => 'Uzbek','am' => 'Amharic','co' => 'Corsican','haw' => 'Hawaiian','ku' => 'Kurdish (Kurmanji)','ky' => 'Kyrgyz','lb' => 'Luxembourgish','ps' => 'Pashto','sm' => 'Samoan','gd' => 'Scottish Gaelic','sn' => 'Shona','sd' => 'Sindhi','fy' => 'Frisian','xh' => 'Xhosa');
     public static $lang_array_native_json = '{"af":"Afrikaans","sq":"Shqip","am":"\u12a0\u121b\u122d\u129b","ar":"\u0627\u0644\u0639\u0631\u0628\u064a\u0629","hy":"\u0540\u0561\u0575\u0565\u0580\u0565\u0576","az":"Az\u0259rbaycan dili","eu":"Euskara","be":"\u0411\u0435\u043b\u0430\u0440\u0443\u0441\u043a\u0430\u044f \u043c\u043e\u0432\u0430","bn":"\u09ac\u09be\u0982\u09b2\u09be","bs":"Bosanski","bg":"\u0411\u044a\u043b\u0433\u0430\u0440\u0441\u043a\u0438","ca":"Catal\u00e0","ceb":"Cebuano","ny":"Chichewa","zh-CN":"\u7b80\u4f53\u4e2d\u6587","zh-TW":"\u7e41\u9ad4\u4e2d\u6587","co":"Corsu","hr":"Hrvatski","cs":"\u010ce\u0161tina\u200e","da":"Dansk","nl":"Nederlands","en":"English","eo":"Esperanto","et":"Eesti","tl":"Filipino","fi":"Suomi","fr":"Fran\u00e7ais","fy":"Frysk","gl":"Galego","ka":"\u10e5\u10d0\u10e0\u10d7\u10e3\u10da\u10d8","de":"Deutsch","el":"\u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac","gu":"\u0a97\u0ac1\u0a9c\u0ab0\u0abe\u0aa4\u0ac0","ht":"Kreyol ayisyen","ha":"Harshen Hausa","haw":"\u014clelo Hawai\u02bbi","iw":"\u05e2\u05b4\u05d1\u05b0\u05e8\u05b4\u05d9\u05ea","hi":"\u0939\u093f\u0928\u094d\u0926\u0940","hmn":"Hmong","hu":"Magyar","is":"\u00cdslenska","ig":"Igbo","id":"Bahasa Indonesia","ga":"Gaeilge","it":"Italiano","ja":"\u65e5\u672c\u8a9e","jw":"Basa Jawa","kn":"\u0c95\u0ca8\u0ccd\u0ca8\u0ca1","kk":"\u049a\u0430\u0437\u0430\u049b \u0442\u0456\u043b\u0456","km":"\u1797\u17b6\u179f\u17b6\u1781\u17d2\u1798\u17c2\u179a","ko":"\ud55c\uad6d\uc5b4","ku":"\u0643\u0648\u0631\u062f\u06cc\u200e","ky":"\u041a\u044b\u0440\u0433\u044b\u0437\u0447\u0430","lo":"\u0e9e\u0eb2\u0eaa\u0eb2\u0ea5\u0eb2\u0ea7","la":"Latin","lv":"Latvie\u0161u valoda","lt":"Lietuvi\u0173 kalba","lb":"L\u00ebtzebuergesch","mk":"\u041c\u0430\u043a\u0435\u0434\u043e\u043d\u0441\u043a\u0438 \u0458\u0430\u0437\u0438\u043a","mg":"Malagasy","ms":"Bahasa Melayu","ml":"\u0d2e\u0d32\u0d2f\u0d3e\u0d33\u0d02","mt":"Maltese","mi":"Te Reo M\u0101ori","mr":"\u092e\u0930\u093e\u0920\u0940","mn":"\u041c\u043e\u043d\u0433\u043e\u043b","my":"\u1017\u1019\u102c\u1005\u102c","ne":"\u0928\u0947\u092a\u093e\u0932\u0940","no":"Norsk bokm\u00e5l","ps":"\u067e\u069a\u062a\u0648","fa":"\u0641\u0627\u0631\u0633\u06cc","pl":"Polski","pt":"Portugu\u00eas","pa":"\u0a2a\u0a70\u0a1c\u0a3e\u0a2c\u0a40","ro":"Rom\u00e2n\u0103","ru":"\u0420\u0443\u0441\u0441\u043a\u0438\u0439","sm":"Samoan","gd":"G\u00e0idhlig","sr":"\u0421\u0440\u043f\u0441\u043a\u0438 \u0458\u0435\u0437\u0438\u043a","st":"Sesotho","sn":"Shona","sd":"\u0633\u0646\u068c\u064a","si":"\u0dc3\u0dd2\u0d82\u0dc4\u0dbd","sk":"Sloven\u010dina","sl":"Sloven\u0161\u010dina","so":"Afsoomaali","es":"Espa\u00f1ol","su":"Basa Sunda","sw":"Kiswahili","sv":"Svenska","tg":"\u0422\u043e\u04b7\u0438\u043a\u04e3","ta":"\u0ba4\u0bae\u0bbf\u0bb4\u0bcd","te":"\u0c24\u0c46\u0c32\u0c41\u0c17\u0c41","th":"\u0e44\u0e17\u0e22","tr":"T\u00fcrk\u00e7e","uk":"\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430","ur":"\u0627\u0631\u062f\u0648","uz":"O\u2018zbekcha","vi":"Ti\u1ebfng Vi\u1ec7t","cy":"Cymraeg","xh":"isiXhosa","yi":"\u05d9\u05d9\u05d3\u05d9\u05e9","yo":"Yor\u00f9b\u00e1","zu":"Zulu"}';
 
     public static function activate() {
         $data = array(
-            'gtranslate_title' => esc_html__('Website Translator', 'gtranslate'),
+            'jaitranslator_title' => esc_html__('Website Translator', 'jai-free-translator'),
         );
-        $data = get_option('GTranslate');
+        $data = get_option('JAI_Translator');
         self::load_defaults($data);
 
-        add_option('GTranslate', $data);
+        add_option('JAI_Translator', $data);
+
+        // Flush rewrite rules to register our language URL rules
+        flush_rewrite_rules();
     }
 
     public static function deactivate() {
-        // delete_option('GTranslate');
+        // delete_option('JAI_Translator');
     }
 
     public static function settings_link($links) {
-        $settings_link = array('<a href="' . admin_url('options-general.php?page=gtranslate_options') . '">'.esc_html__('Settings', 'gtranslate').'</a>');
+        $settings_link = array('<a href="' . admin_url('options-general.php?page=jaitranslator_options') . '">'.esc_html__('Settings', 'jai-free-translator').'</a>');
         return array_merge($links, $settings_link);
     }
 
     public static function control() {
-        $data = get_option('GTranslate');
+        $data = get_option('JAI_Translator');
         ?>
-        <p><label><?php esc_html_e('Title', 'gtranslate'); ?>: <input name="gtranslate_title" type="text" class="widefat" value="<?php echo $data['gtranslate_title']; ?>"/></label></p>
-        <p><?php printf(esc_html__('Please go to %s for configuration.', 'gtranslate'), '<a href="' . admin_url('options-general.php?page=gtranslate_options') . '">'.esc_html__('GTranslate Settings', 'gtranslate').'</a>'); ?></p>
+        <p><label><?php esc_html_e('Title', 'jai-free-translator'); ?>: <input name="jaitranslator_title" type="text" class="widefat" value="<?php echo $data['jaitranslator_title']; ?>"/></label></p>
+        <p><?php printf(esc_html__('Please go to %s for configuration.', 'jai-free-translator'), '<a href="' . admin_url('options-general.php?page=jaitranslator_options') . '">'.esc_html__('JAI Translator Settings', 'jai-free-translator').'</a>'); ?></p>
         <?php
-        if (isset($_POST['gtranslate_title'])){
-            $data['gtranslate_title'] = esc_attr($_POST['gtranslate_title']);
-            update_option('GTranslate', $data);
+        if (isset($_POST['jaitranslator_title'])){
+            $data['jaitranslator_title'] = esc_attr($_POST['jaitranslator_title']);
+            update_option('JAI_Translator', $data);
         }
     }
 
     public static function set_dns_prefetch_header() {
-        $data = get_option('GTranslate');
+        // CDN disabled in free version - using local assets only
+    }
+
+    public static function add_rewrite_rules() {
+        $data = get_option('JAI_Translator');
         self::load_defaults($data);
 
-        if($data['enable_cdn'])
-            header('Link: <https://cdn.gtranslate.net/>; rel=dns-prefetch', false);
+        // Only add rewrite rules if sub_directory URL structure is enabled
+        if($data['url_structure'] !== 'sub_directory') {
+            return;
+        }
+
+        // Add query vars so WordPress recognizes them
+        add_filter('query_vars', function($vars) {
+            $vars[] = 'glang';
+            $vars[] = 'gt_path';
+            return $vars;
+        });
+
+        // Intercept language-prefixed URLs and set glang parameter
+        add_filter('request', function($query_vars) {
+            // Check if this request was matched by our rewrite rule
+            // Our rule sets: glang=$1 and gt_path=$2
+            if(isset($query_vars['glang']) && isset($query_vars['gt_path'])) {
+                $lang = $query_vars['glang'];
+                $path = trim($query_vars['gt_path'], '/');
+
+                // Debug logging
+                error_log('[JAI Translator] Language URL detected: lang=' . $lang . ', path=' . $path);
+                error_log('[JAI Translator] Original query_vars: ' . print_r($query_vars, true));
+
+                // Make glang available globally
+                $_GET['glang'] = $lang;
+
+                // Remove the gt_path var since it's not a real query var
+                unset($query_vars['gt_path']);
+
+                // If empty path, it's the homepage
+                if(empty($path)) {
+                    $page_on_front = get_option('page_on_front');
+                    if($page_on_front) {
+                        $query_vars['page_id'] = $page_on_front;
+                    }
+                } else {
+                    // Set pagename to let WordPress find the page
+                    $query_vars['pagename'] = $path;
+                }
+
+                error_log('[JAI Translator] Modified query_vars: ' . print_r($query_vars, true));
+
+                return $query_vars;
+            }
+
+            return $query_vars;
+        }, 1);
+    }
+
+    public static function add_language_rewrite_rules($rules) {
+        $data = get_option('JAI_Translator');
+        self::load_defaults($data);
+
+        // Only add rewrite rules if sub_directory URL structure is enabled
+        if($data['url_structure'] !== 'sub_directory') {
+            return $rules;
+        }
+
+        // Language codes pattern
+        $lang_codes = '(af|sq|am|ar|hy|az|eu|be|bn|bs|bg|ca|ceb|ny|zh-CN|zh-TW|co|hr|cs|da|nl|en|eo|et|tl|fi|fr|fy|gl|ka|de|el|gu|ht|ha|haw|iw|hi|hmn|hu|is|ig|id|ga|it|ja|jw|kn|kk|km|ko|ku|ky|lo|la|lv|lt|lb|mk|mg|ms|ml|mt|mi|mr|mn|my|ne|no|ps|fa|pl|pt|pa|ro|ru|sm|gd|sr|st|sn|sd|si|sk|sl|so|es|su|sw|sv|tg|ta|te|th|tr|uk|ur|uz|vi|cy|xh|yi|yo|zu)';
+
+        // Add our language rewrite rule at the top
+        $new_rules = array();
+        $new_rules['^' . $lang_codes . '/(.*)$'] = 'index.php?glang=$matches[1]&gt_path=$matches[2]';
+
+        return array_merge($new_rules, $rules);
+    }
+
+    public static function prevent_language_url_redirect($redirect_url, $requested_url) {
+        // If the requested URL has a language prefix like /es/, prevent WordPress from redirecting
+        if(preg_match('#^https?://[^/]+/(af|sq|am|ar|hy|az|eu|be|bn|bs|bg|ca|ceb|ny|zh-CN|zh-TW|co|hr|cs|da|nl|en|eo|et|tl|fi|fr|fy|gl|ka|de|el|gu|ht|ha|haw|iw|hi|hmn|hu|is|ig|id|ga|it|ja|jw|kn|kk|km|ko|ku|ky|lo|la|lv|lt|lb|mk|mg|ms|ml|mt|mi|mr|mn|my|ne|no|ps|fa|pl|pt|pa|ro|ru|sm|gd|sr|st|sn|sd|si|sk|sl|so|es|su|sw|sv|tg|ta|te|th|tr|uk|ur|uz|vi|cy|xh|yi|yo|zu)/#', $requested_url)) {
+            // Prevent redirect - return false to keep the original URL
+            return false;
+        }
+
+        return $redirect_url;
+    }
+
+    public static function handle_server_side_translation() {
+        // Check if this is a translation request (glang parameter from URL rewrite)
+        if(!isset($_GET['glang'])) {
+            return; // Not a translation request
+        }
+
+        $target_lang = strtolower(trim($_GET['glang']));
+
+        // Load plugin settings
+        $data = get_option('JAI_Translator');
+        self::load_defaults($data);
+
+        // Check if server-side translation is enabled (API key configured)
+        $translation_api_provider = isset($data['translation_api_provider']) ? $data['translation_api_provider'] : '';
+        $translation_api_key = '';
+
+        if($translation_api_provider === 'deepl') {
+            $translation_api_key = isset($data['deepl_api_key']) ? $data['deepl_api_key'] : '';
+        } elseif($translation_api_provider === 'google') {
+            $translation_api_key = isset($data['google_translate_api_key']) ? $data['google_translate_api_key'] : '';
+        }
+
+        // If no API key configured, let client-side translation handle it
+        if(empty($translation_api_key)) {
+            return;
+        }
+
+        $source_lang = $data['default_language'];
+
+        // Don't translate if target is same as source
+        if($target_lang === $source_lang) {
+            return;
+        }
+
+        // Start output buffering to capture WordPress's rendered HTML
+        ob_start(function($html) use ($source_lang, $target_lang, $translation_api_provider, $translation_api_key) {
+            // Only translate if we got actual HTML content
+            if(empty($html) || strlen($html) < 100) {
+                return $html;
+            }
+
+            // Load the translator
+            require_once dirname(__FILE__) . '/url_addon/translator.php';
+            $translator = new GT_Translator($source_lang, $target_lang, $translation_api_provider, $translation_api_key);
+
+            // Translate the HTML
+            $translated_html = $translator->translate_html($html, $_SERVER['REQUEST_URI']);
+
+            // If translation succeeded, return translated HTML
+            if($translated_html !== false) {
+                return $translated_html;
+            }
+
+            // Translation failed, return original HTML
+            return $html;
+        });
     }
 
     public static function enqueue_scripts() {
-        $data = get_option('GTranslate');
+        $data = get_option('JAI_Translator');
         self::load_defaults($data);
 
         if(is_admin())
@@ -110,7 +255,7 @@ class GTranslate extends WP_Widget {
     }
 
     public static function load_textdomain() {
-        load_plugin_textdomain('gtranslate');
+        load_plugin_textdomain('jai-free-translator');
 
         // set correct language direction
         global $text_direction;
@@ -136,7 +281,7 @@ class GTranslate extends WP_Widget {
         if(!is_array($atts)) $atts = array();
 
         $atts['position'] = 'inline';
-        $atts['wrapper_selector'] = '.gtranslate_wrapper';
+        $atts['wrapper_selector'] = '.jaitranslator_wrapper';
 
         return self::get_widget_code($atts);
     }
@@ -145,13 +290,13 @@ class GTranslate extends WP_Widget {
         if(!is_array($atts) or !isset($atts['lang']))
             return;
 
-        $data = get_option('GTranslate');
+        $data = get_option('JAI_Translator');
         self::load_defaults($data);
 
         $lang_code = $atts['lang'];
 
         if(!isset($atts['label'])) {
-            $lang_array = $data['native_language_names'] ? json_decode(GTranslate::$lang_array_native_json, true) : GTranslate::$lang_array;
+            $lang_array = $data['native_language_names'] ? json_decode(JAI_Translator::$lang_array_native_json, true) : JAI_Translator::$lang_array;
             $label = $lang_array[$lang_code];
         } else {
             $label = $atts['label'];
@@ -166,9 +311,9 @@ class GTranslate extends WP_Widget {
         $flag_src = self::get_flag_src($lang_code);
 
         if(isset($atts['current_wrapper']))
-            $add_class = $lang_code == $data['default_language'] ? ' class="gt-current-wrapper notranslate"' : ' class="notranslate"';
+            $add_class = $lang_code == $data['default_language'] ? ' class="jt-current-wrapper notranslate"' : ' class="notranslate"';
         else
-            $add_class = $lang_code == $data['default_language'] ? ' class="gt-current-lang notranslate"' : ' class="notranslate"';
+            $add_class = $lang_code == $data['default_language'] ? ' class="jt-current-lang notranslate"' : ' class="notranslate"';
 
         switch($widget_look) {
             case 'lang_names': $el_code = '<a href="#" data-gt-lang="' . esc_attr($lang_code) . '"' . $add_class . '>' . esc_html($label) . '</a>'; break;
@@ -193,18 +338,11 @@ class GTranslate extends WP_Widget {
                 if(isset($old_settings[$key]) and $old_settings[$key] !== '')
                     $gt_settings[$key] = $old_settings[$key];
 
-            if($data['enable_cdn']) {
-                wp_enqueue_script('gt_widget_script_' . $unique_id, 'https://cdn.gtranslate.net/widgets/latest/base.js', array(), '', true);
-            } else {
-                $base_path = plugins_url('', __FILE__);
-                if($data['enterprise_version'])
-                    $gt_settings['flags_location'] = $base_path . '/flags/';
-                else
-                    $gt_settings['flags_location'] = wp_make_link_relative($base_path) . '/flags/';
-
-                wp_enqueue_script('gt_widget_script_' . $unique_id, $base_path . '/js/base.js', array(), '', true);
-            }
-            wp_add_inline_script('gt_widget_script_' . $unique_id, "window.gtranslateSettings = /* document.write */ window.gtranslateSettings || {};window.gtranslateSettings['" . $unique_id . "'] = " . json_encode($gt_settings) . ";", 'before');
+            // Always use local assets (CDN disabled in free version)
+            $base_path = plugins_url('', __FILE__);
+            $gt_settings['flags_location'] = wp_make_link_relative($base_path) . '/flags/';
+            wp_enqueue_script('gt_widget_script_' . $unique_id, $base_path . '/js/base.js', array(), '', true);
+            wp_add_inline_script('gt_widget_script_' . $unique_id, "window.jaitranslatorSettings = /* document.write */ window.jaitranslatorSettings || {};window.jaitranslatorSettings['" . $unique_id . "'] = " . json_encode($gt_settings) . ";", 'before');
         }
 
         return $el_code;
@@ -225,13 +363,11 @@ class GTranslate extends WP_Widget {
     }
 
     public static function get_flag_src($lang) {
-        $data = get_option('GTranslate');
+        $data = get_option('JAI_Translator');
         self::load_defaults($data);
 
-        if($data['enable_cdn'])
-            $base_src = 'https://cdn.gtranslate.net/flags/';
-        else
-            $base_src = plugins_url('', __FILE__) . '/flags/';
+        // Always use local flag assets
+        $base_src = plugins_url('', __FILE__) . '/flags/';
 
         if($data['flag_style'] == '2d')
             $base_src .= 'svg/';
@@ -263,7 +399,7 @@ class GTranslate extends WP_Widget {
     public static function get_widget_code($atts) {
         $unique_id = wp_rand(10000000, 88888888);
 
-        $data = get_option('GTranslate');
+        $data = get_option('JAI_Translator');
         self::load_defaults($data);
 
         if(isset($atts['widget_look']) and in_array($atts['widget_look'], array('float', 'dropdown_with_flags', 'dropdown', 'flags_dropdown', 'popup', 'flags', 'globe', 'flags_code', 'flags_name', 'lang_names', 'lang_codes'))) {
@@ -302,9 +438,9 @@ class GTranslate extends WP_Widget {
         $gt_settings['vertical_position'] = $vertical_position;
 
         $widget_code = '';
-        if($gt_settings['wrapper_selector'] == '.gtranslate_wrapper' or empty(trim($gt_settings['wrapper_selector']))) {
+        if($gt_settings['wrapper_selector'] == '.jaitranslator_wrapper' or empty(trim($gt_settings['wrapper_selector']))) {
             $gt_settings['wrapper_selector'] = '#gt-wrapper-' . $unique_id;
-            $widget_code .= '<div class="gtranslate_wrapper" id="gt-wrapper-' . $unique_id . '"></div>';
+            $widget_code .= '<div class="jaitranslator_wrapper" id="gt-wrapper-' . $unique_id . '"></div>';
         }
 
         if(strpos($data['widget_look'], '_') !== false) {
@@ -346,36 +482,25 @@ class GTranslate extends WP_Widget {
         }
         */
 
-        // add necessary js
-        if($data['enable_cdn']) {
-            wp_enqueue_script('gt_widget_script_' . $unique_id, 'https://cdn.gtranslate.net/widgets/latest/' . $widget_short_name . '.js', array(), '', true);
+        // add necessary js (always use local assets)
+        $base_path = plugins_url('', __FILE__);
+        if($data['widget_look'] == 'globe') {
+            $gt_settings['flags_location'] = wp_make_link_relative($base_path) . '/flags/svg/';
         } else {
-            $base_path = plugins_url('', __FILE__);
-            if($data['widget_look'] == 'globe') {
-                if($data['enterprise_version'])
-                    $gt_settings['flags_location'] = $base_path . '/flags/svg/';
-                else
-                    $gt_settings['flags_location'] = wp_make_link_relative($base_path) . '/flags/svg/';
-            } else {
-                if($data['enterprise_version'])
-                    $gt_settings['flags_location'] = $base_path . '/flags/';
-                else
-                    $gt_settings['flags_location'] = wp_make_link_relative($base_path) . '/flags/';
-            }
-
-            wp_enqueue_script('gt_widget_script_' . $unique_id, $base_path . '/js/' . $widget_short_name . '.js', array(), '', true);
+            $gt_settings['flags_location'] = wp_make_link_relative($base_path) . '/flags/';
         }
-        wp_add_inline_script('gt_widget_script_' . $unique_id, "window.gtranslateSettings = /* document.write */ window.gtranslateSettings || {};window.gtranslateSettings['" . $unique_id . "'] = " . json_encode($gt_settings) . ";", 'before');
+        wp_enqueue_script('gt_widget_script_' . $unique_id, $base_path . '/js/' . $widget_short_name . '.js', array(), '', true);
+        wp_add_inline_script('gt_widget_script_' . $unique_id, "window.jaitranslatorSettings = /* document.write */ window.jaitranslatorSettings || {};window.jaitranslatorSettings['" . $unique_id . "'] = " . json_encode($gt_settings) . ";", 'before');
 
         return $widget_code;
     }
 
     public static function register() {
-        register_widget('GTranslateWidget');
+        register_widget('JAI_Translator_Widget');
     }
 
     public static function admin_menu() {
-        add_options_page(__('GTranslate Options', 'gtranslate'), 'GTranslate', 'administrator', 'gtranslate_options', array('GTranslate', 'options'));
+        add_options_page(__('JAI Translator Options', 'jai-free-translator'), 'JAI_Translator', 'administrator', 'jaitranslator_options', array('JAI_Translator', 'options'));
 
     }
 
@@ -383,11 +508,11 @@ class GTranslate extends WP_Widget {
         ?>
         <div class="wrap">
         <div id="icon-options-general" class="icon32"><br/></div>
-        <h2><img src="<?php echo plugins_url('gt_logo.svg', __FILE__); ?>" border="0" title="<?php esc_attr_e('GTranslate - your window to the world', 'gtranslate'); ?>" alt="G|translate" height="70"></h2>
+        <h2><?php esc_html_e('JAI Free Translator', 'jai-free-translator'); ?></h2>
         <?php
         if(isset($_POST['save']) and $_POST['save'])
             self::control_options();
-        $data = get_option('GTranslate');
+        $data = get_option('JAI_Translator');
         self::load_defaults($data);
 
         wp_enqueue_script('jquery-ui-sortable');
@@ -400,7 +525,7 @@ class GTranslate extends WP_Widget {
         add_thickbox();
 
         $site_url = site_url();
-        $wp_plugin_url = preg_replace('/^https?:/i', '', plugins_url() . '/gtranslate');
+        $wp_plugin_url = preg_replace('/^https?:/i', '', plugins_url() . '/jai-free-translator');
 
         extract($data);
 
@@ -657,8 +782,8 @@ function RefreshDoWidgetCode() {
         jQuery('#float_switcher_open_direction_option').hide();
     }
 
-    var init_widget_code = '<div class="gtranslate_wrapper"></div>';
-    init_widget_code += '<script>window.gtranslateSettings = ' + JSON.stringify(gt_settings) + '<\/script>';
+    var init_widget_code = '<div class="jaitranslator_wrapper"></div>';
+    init_widget_code += '<script>window.jaitranslatorSettings = ' + JSON.stringify(gt_settings) + '<\/script>';
     var widget_short_name = widget_look.split('_').map(function(el){return el.charAt(0)}).join('');
     var widgets_location = '$wp_plugin_url/js/';
     if(widget_short_name.length == 1)
@@ -672,7 +797,7 @@ function RefreshDoWidgetCode() {
 
 function ShowWidgetPreview(widget_preview) {
     jQuery('#widget_preview').html('');
-    jQuery('style.gtranslate_css').remove();
+    jQuery('style.jaitranslator_css').remove();
     jQuery('#widget_preview').html(widget_preview);
 
     setTimeout(function(){
@@ -853,218 +978,218 @@ RefreshDoWidgetCode();
 EOT;
 ?>
 
-        <form id="gtranslate" name="form1" method="post" class="notranslate" action="<?php echo admin_url('options-general.php?page=gtranslate_options'); ?>">
+        <form id="jaitranslator" name="form1" method="post" class="notranslate" action="<?php echo admin_url('options-general.php?page=jaitranslator_options'); ?>">
 
         <div class="postbox-container og_left_col">
 
         <div id="poststuff">
             <div class="postbox">
-                <h3 id="settings"><?php esc_html_e('Widget options', 'gtranslate'); ?></h3>
+                <h3 id="settings"><?php esc_html_e('Widget options', 'jai-free-translator'); ?></h3>
                 <div class="inside">
                     <table style="width:100%;" cellpadding="4">
                     <tr>
-                        <td class="option_name"><?php esc_html_e('Widget look', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Widget look', 'jai-free-translator'); ?>:</td>
                         <td>
                             <select id="widget_look" name="widget_look" onChange="RefreshDoWidgetCode()">
-                                <option value="float"><?php esc_html_e('Float', 'gtranslate'); ?></option>
-                                <option value="dropdown_with_flags"><?php esc_html_e('Nice dropdown with flags', 'gtranslate'); ?></option>
-                                <option value="popup"><?php esc_html_e('Popup', 'gtranslate'); ?></option>
-                                <option value="dropdown"><?php esc_html_e('Dropdown', 'gtranslate'); ?></option>
-                                <option value="flags"><?php esc_html_e('Flags', 'gtranslate'); ?></option>
-                                <option value="flags_dropdown"><?php esc_html_e('Flags and dropdown', 'gtranslate'); ?></option>
-                                <option value="flags_name"><?php esc_html_e('Flags with language name', 'gtranslate'); ?></option>
-                                <option value="flags_code"><?php esc_html_e('Flags with language code', 'gtranslate'); ?></option>
-                                <option value="lang_names"><?php esc_html_e('Language names', 'gtranslate'); ?></option>
-                                <option value="lang_codes"><?php esc_html_e('Language codes', 'gtranslate'); ?></option>
-                                <option value="globe"><?php esc_html_e('Globe', 'gtranslate'); ?></option>
+                                <option value="float"><?php esc_html_e('Float', 'jai-free-translator'); ?></option>
+                                <option value="dropdown_with_flags"><?php esc_html_e('Nice dropdown with flags', 'jai-free-translator'); ?></option>
+                                <option value="popup"><?php esc_html_e('Popup', 'jai-free-translator'); ?></option>
+                                <option value="dropdown"><?php esc_html_e('Dropdown', 'jai-free-translator'); ?></option>
+                                <option value="flags"><?php esc_html_e('Flags', 'jai-free-translator'); ?></option>
+                                <option value="flags_dropdown"><?php esc_html_e('Flags and dropdown', 'jai-free-translator'); ?></option>
+                                <option value="flags_name"><?php esc_html_e('Flags with language name', 'jai-free-translator'); ?></option>
+                                <option value="flags_code"><?php esc_html_e('Flags with language code', 'jai-free-translator'); ?></option>
+                                <option value="lang_names"><?php esc_html_e('Language names', 'jai-free-translator'); ?></option>
+                                <option value="lang_codes"><?php esc_html_e('Language codes', 'jai-free-translator'); ?></option>
+                                <option value="globe"><?php esc_html_e('Globe', 'jai-free-translator'); ?></option>
                             </select>
                         </td>
                     </tr>
                     <tr>
-                        <td class="option_name"><?php esc_html_e('Translate from', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Translate from', 'jai-free-translator'); ?>:</td>
                         <td>
                             <select id="default_language" name="default_language" onChange="RefreshDoWidgetCode()">
-                                <option value="af"><?php esc_html_e('Afrikaans', 'gtranslate'); ?></option>
-                                <option value="sq"><?php esc_html_e('Albanian', 'gtranslate'); ?></option>
-                                <option value="am"><?php esc_html_e('Amharic', 'gtranslate'); ?></option>
-                                <option value="ar"><?php esc_html_e('Arabic', 'gtranslate'); ?></option>
-                                <option value="hy"><?php esc_html_e('Armenian', 'gtranslate'); ?></option>
-                                <option value="az"><?php esc_html_e('Azerbaijani', 'gtranslate'); ?></option>
-                                <option value="eu"><?php esc_html_e('Basque', 'gtranslate'); ?></option>
-                                <option value="be"><?php esc_html_e('Belarusian', 'gtranslate'); ?></option>
-                                <option value="bn"><?php esc_html_e('Bengali', 'gtranslate'); ?></option>
-                                <option value="bs"><?php esc_html_e('Bosnian', 'gtranslate'); ?></option>
-                                <option value="bg"><?php esc_html_e('Bulgarian', 'gtranslate'); ?></option>
-                                <option value="ca"><?php esc_html_e('Catalan', 'gtranslate'); ?></option>
-                                <option value="ceb"><?php esc_html_e('Cebuano', 'gtranslate'); ?></option>
-                                <option value="ny"><?php esc_html_e('Chichewa', 'gtranslate'); ?></option>
-                                <option value="zh-CN"><?php esc_html_e('Chinese (Simplified)', 'gtranslate'); ?></option>
-                                <option value="zh-TW"><?php esc_html_e('Chinese (Traditional)', 'gtranslate'); ?></option>
-                                <option value="co"><?php esc_html_e('Corsican', 'gtranslate'); ?></option>
-                                <option value="hr"><?php esc_html_e('Croatian', 'gtranslate'); ?></option>
-                                <option value="cs"><?php esc_html_e('Czech', 'gtranslate'); ?></option>
-                                <option value="da"><?php esc_html_e('Danish', 'gtranslate'); ?></option>
-                                <option value="nl"><?php esc_html_e('Dutch', 'gtranslate'); ?></option>
-                                <option value="en" selected="selected"><?php esc_html_e('English', 'gtranslate'); ?></option>
-                                <option value="eo"><?php esc_html_e('Esperanto', 'gtranslate'); ?></option>
-                                <option value="et"><?php esc_html_e('Estonian', 'gtranslate'); ?></option>
-                                <option value="tl"><?php esc_html_e('Filipino', 'gtranslate'); ?></option>
-                                <option value="fi"><?php esc_html_e('Finnish', 'gtranslate'); ?></option>
-                                <option value="fr"><?php esc_html_e('French', 'gtranslate'); ?></option>
-                                <option value="fy"><?php esc_html_e('Frisian', 'gtranslate'); ?></option>
-                                <option value="gl"><?php esc_html_e('Galician', 'gtranslate'); ?></option>
-                                <option value="ka"><?php esc_html_e('Georgian', 'gtranslate'); ?></option>
-                                <option value="de"><?php esc_html_e('German', 'gtranslate'); ?></option>
-                                <option value="el"><?php esc_html_e('Greek', 'gtranslate'); ?></option>
-                                <option value="gu"><?php esc_html_e('Gujarati', 'gtranslate'); ?></option>
-                                <option value="ht"><?php esc_html_e('Haitian Creole', 'gtranslate'); ?></option>
-                                <option value="ha"><?php esc_html_e('Hausa', 'gtranslate'); ?></option>
-                                <option value="haw"><?php esc_html_e('Hawaiian', 'gtranslate'); ?></option>
-                                <option value="iw"><?php esc_html_e('Hebrew', 'gtranslate'); ?></option>
-                                <option value="hi"><?php esc_html_e('Hindi', 'gtranslate'); ?></option>
-                                <option value="hmn"><?php esc_html_e('Hmong', 'gtranslate'); ?></option>
-                                <option value="hu"><?php esc_html_e('Hungarian', 'gtranslate'); ?></option>
-                                <option value="is"><?php esc_html_e('Icelandic', 'gtranslate'); ?></option>
-                                <option value="ig"><?php esc_html_e('Igbo', 'gtranslate'); ?></option>
-                                <option value="id"><?php esc_html_e('Indonesian', 'gtranslate'); ?></option>
-                                <option value="ga"><?php esc_html_e('Irish', 'gtranslate'); ?></option>
-                                <option value="it"><?php esc_html_e('Italian', 'gtranslate'); ?></option>
-                                <option value="ja"><?php esc_html_e('Japanese', 'gtranslate'); ?></option>
-                                <option value="jw"><?php esc_html_e('Javanese', 'gtranslate'); ?></option>
-                                <option value="kn"><?php esc_html_e('Kannada', 'gtranslate'); ?></option>
-                                <option value="kk"><?php esc_html_e('Kazakh', 'gtranslate'); ?></option>
-                                <option value="km"><?php esc_html_e('Khmer', 'gtranslate'); ?></option>
-                                <option value="ko"><?php esc_html_e('Korean', 'gtranslate'); ?></option>
-                                <option value="ku"><?php esc_html_e('Kurdish (Kurmanji)', 'gtranslate'); ?></option>
-                                <option value="ky"><?php esc_html_e('Kyrgyz', 'gtranslate'); ?></option>
-                                <option value="lo"><?php esc_html_e('Lao', 'gtranslate'); ?></option>
-                                <option value="la"><?php esc_html_e('Latin', 'gtranslate'); ?></option>
-                                <option value="lv"><?php esc_html_e('Latvian', 'gtranslate'); ?></option>
-                                <option value="lt"><?php esc_html_e('Lithuanian', 'gtranslate'); ?></option>
-                                <option value="lb"><?php esc_html_e('Luxembourgish', 'gtranslate'); ?></option>
-                                <option value="mk"><?php esc_html_e('Macedonian', 'gtranslate'); ?></option>
-                                <option value="mg"><?php esc_html_e('Malagasy', 'gtranslate'); ?></option>
-                                <option value="ms"><?php esc_html_e('Malay', 'gtranslate'); ?></option>
-                                <option value="ml"><?php esc_html_e('Malayalam', 'gtranslate'); ?></option>
-                                <option value="mt"><?php esc_html_e('Maltese', 'gtranslate'); ?></option>
-                                <option value="mi"><?php esc_html_e('Maori', 'gtranslate'); ?></option>
-                                <option value="mr"><?php esc_html_e('Marathi', 'gtranslate'); ?></option>
-                                <option value="mn"><?php esc_html_e('Mongolian', 'gtranslate'); ?></option>
-                                <option value="my"><?php esc_html_e('Myanmar (Burmese)', 'gtranslate'); ?></option>
-                                <option value="ne"><?php esc_html_e('Nepali', 'gtranslate'); ?></option>
-                                <option value="no"><?php esc_html_e('Norwegian', 'gtranslate'); ?></option>
-                                <option value="ps"><?php esc_html_e('Pashto', 'gtranslate'); ?></option>
-                                <option value="fa"><?php esc_html_e('Persian', 'gtranslate'); ?></option>
-                                <option value="pl"><?php esc_html_e('Polish', 'gtranslate'); ?></option>
-                                <option value="pt"><?php esc_html_e('Portuguese', 'gtranslate'); ?></option>
-                                <option value="pa"><?php esc_html_e('Punjabi', 'gtranslate'); ?></option>
-                                <option value="ro"><?php esc_html_e('Romanian', 'gtranslate'); ?></option>
-                                <option value="ru"><?php esc_html_e('Russian', 'gtranslate'); ?></option>
-                                <option value="sm"><?php esc_html_e('Samoan', 'gtranslate'); ?></option>
-                                <option value="gd"><?php esc_html_e('Scottish Gaelic', 'gtranslate'); ?></option>
-                                <option value="sr"><?php esc_html_e('Serbian', 'gtranslate'); ?></option>
-                                <option value="st"><?php esc_html_e('Sesotho', 'gtranslate'); ?></option>
-                                <option value="sn"><?php esc_html_e('Shona', 'gtranslate'); ?></option>
-                                <option value="sd"><?php esc_html_e('Sindhi', 'gtranslate'); ?></option>
-                                <option value="si"><?php esc_html_e('Sinhala', 'gtranslate'); ?></option>
-                                <option value="sk"><?php esc_html_e('Slovak', 'gtranslate'); ?></option>
-                                <option value="sl"><?php esc_html_e('Slovenian', 'gtranslate'); ?></option>
-                                <option value="so"><?php esc_html_e('Somali', 'gtranslate'); ?></option>
-                                <option value="es"><?php esc_html_e('Spanish', 'gtranslate'); ?></option>
-                                <option value="su"><?php esc_html_e('Sundanese', 'gtranslate'); ?></option>
-                                <option value="sw"><?php esc_html_e('Swahili', 'gtranslate'); ?></option>
-                                <option value="sv"><?php esc_html_e('Swedish', 'gtranslate'); ?></option>
-                                <option value="tg"><?php esc_html_e('Tajik', 'gtranslate'); ?></option>
-                                <option value="ta"><?php esc_html_e('Tamil', 'gtranslate'); ?></option>
-                                <option value="te"><?php esc_html_e('Telugu', 'gtranslate'); ?></option>
-                                <option value="th"><?php esc_html_e('Thai', 'gtranslate'); ?></option>
-                                <option value="tr"><?php esc_html_e('Turkish', 'gtranslate'); ?></option>
-                                <option value="uk"><?php esc_html_e('Ukrainian', 'gtranslate'); ?></option>
-                                <option value="ur"><?php esc_html_e('Urdu', 'gtranslate'); ?></option>
-                                <option value="uz"><?php esc_html_e('Uzbek', 'gtranslate'); ?></option>
-                                <option value="vi"><?php esc_html_e('Vietnamese', 'gtranslate'); ?></option>
-                                <option value="cy"><?php esc_html_e('Welsh', 'gtranslate'); ?></option>
-                                <option value="xh"><?php esc_html_e('Xhosa', 'gtranslate'); ?></option>
-                                <option value="yi"><?php esc_html_e('Yiddish', 'gtranslate'); ?></option>
-                                <option value="yo"><?php esc_html_e('Yoruba', 'gtranslate'); ?></option>
-                                <option value="zu"><?php esc_html_e('Zulu', 'gtranslate'); ?></option>
+                                <option value="af"><?php esc_html_e('Afrikaans', 'jai-free-translator'); ?></option>
+                                <option value="sq"><?php esc_html_e('Albanian', 'jai-free-translator'); ?></option>
+                                <option value="am"><?php esc_html_e('Amharic', 'jai-free-translator'); ?></option>
+                                <option value="ar"><?php esc_html_e('Arabic', 'jai-free-translator'); ?></option>
+                                <option value="hy"><?php esc_html_e('Armenian', 'jai-free-translator'); ?></option>
+                                <option value="az"><?php esc_html_e('Azerbaijani', 'jai-free-translator'); ?></option>
+                                <option value="eu"><?php esc_html_e('Basque', 'jai-free-translator'); ?></option>
+                                <option value="be"><?php esc_html_e('Belarusian', 'jai-free-translator'); ?></option>
+                                <option value="bn"><?php esc_html_e('Bengali', 'jai-free-translator'); ?></option>
+                                <option value="bs"><?php esc_html_e('Bosnian', 'jai-free-translator'); ?></option>
+                                <option value="bg"><?php esc_html_e('Bulgarian', 'jai-free-translator'); ?></option>
+                                <option value="ca"><?php esc_html_e('Catalan', 'jai-free-translator'); ?></option>
+                                <option value="ceb"><?php esc_html_e('Cebuano', 'jai-free-translator'); ?></option>
+                                <option value="ny"><?php esc_html_e('Chichewa', 'jai-free-translator'); ?></option>
+                                <option value="zh-CN"><?php esc_html_e('Chinese (Simplified)', 'jai-free-translator'); ?></option>
+                                <option value="zh-TW"><?php esc_html_e('Chinese (Traditional)', 'jai-free-translator'); ?></option>
+                                <option value="co"><?php esc_html_e('Corsican', 'jai-free-translator'); ?></option>
+                                <option value="hr"><?php esc_html_e('Croatian', 'jai-free-translator'); ?></option>
+                                <option value="cs"><?php esc_html_e('Czech', 'jai-free-translator'); ?></option>
+                                <option value="da"><?php esc_html_e('Danish', 'jai-free-translator'); ?></option>
+                                <option value="nl"><?php esc_html_e('Dutch', 'jai-free-translator'); ?></option>
+                                <option value="en" selected="selected"><?php esc_html_e('English', 'jai-free-translator'); ?></option>
+                                <option value="eo"><?php esc_html_e('Esperanto', 'jai-free-translator'); ?></option>
+                                <option value="et"><?php esc_html_e('Estonian', 'jai-free-translator'); ?></option>
+                                <option value="tl"><?php esc_html_e('Filipino', 'jai-free-translator'); ?></option>
+                                <option value="fi"><?php esc_html_e('Finnish', 'jai-free-translator'); ?></option>
+                                <option value="fr"><?php esc_html_e('French', 'jai-free-translator'); ?></option>
+                                <option value="fy"><?php esc_html_e('Frisian', 'jai-free-translator'); ?></option>
+                                <option value="gl"><?php esc_html_e('Galician', 'jai-free-translator'); ?></option>
+                                <option value="ka"><?php esc_html_e('Georgian', 'jai-free-translator'); ?></option>
+                                <option value="de"><?php esc_html_e('German', 'jai-free-translator'); ?></option>
+                                <option value="el"><?php esc_html_e('Greek', 'jai-free-translator'); ?></option>
+                                <option value="gu"><?php esc_html_e('Gujarati', 'jai-free-translator'); ?></option>
+                                <option value="ht"><?php esc_html_e('Haitian Creole', 'jai-free-translator'); ?></option>
+                                <option value="ha"><?php esc_html_e('Hausa', 'jai-free-translator'); ?></option>
+                                <option value="haw"><?php esc_html_e('Hawaiian', 'jai-free-translator'); ?></option>
+                                <option value="iw"><?php esc_html_e('Hebrew', 'jai-free-translator'); ?></option>
+                                <option value="hi"><?php esc_html_e('Hindi', 'jai-free-translator'); ?></option>
+                                <option value="hmn"><?php esc_html_e('Hmong', 'jai-free-translator'); ?></option>
+                                <option value="hu"><?php esc_html_e('Hungarian', 'jai-free-translator'); ?></option>
+                                <option value="is"><?php esc_html_e('Icelandic', 'jai-free-translator'); ?></option>
+                                <option value="ig"><?php esc_html_e('Igbo', 'jai-free-translator'); ?></option>
+                                <option value="id"><?php esc_html_e('Indonesian', 'jai-free-translator'); ?></option>
+                                <option value="ga"><?php esc_html_e('Irish', 'jai-free-translator'); ?></option>
+                                <option value="it"><?php esc_html_e('Italian', 'jai-free-translator'); ?></option>
+                                <option value="ja"><?php esc_html_e('Japanese', 'jai-free-translator'); ?></option>
+                                <option value="jw"><?php esc_html_e('Javanese', 'jai-free-translator'); ?></option>
+                                <option value="kn"><?php esc_html_e('Kannada', 'jai-free-translator'); ?></option>
+                                <option value="kk"><?php esc_html_e('Kazakh', 'jai-free-translator'); ?></option>
+                                <option value="km"><?php esc_html_e('Khmer', 'jai-free-translator'); ?></option>
+                                <option value="ko"><?php esc_html_e('Korean', 'jai-free-translator'); ?></option>
+                                <option value="ku"><?php esc_html_e('Kurdish (Kurmanji)', 'jai-free-translator'); ?></option>
+                                <option value="ky"><?php esc_html_e('Kyrgyz', 'jai-free-translator'); ?></option>
+                                <option value="lo"><?php esc_html_e('Lao', 'jai-free-translator'); ?></option>
+                                <option value="la"><?php esc_html_e('Latin', 'jai-free-translator'); ?></option>
+                                <option value="lv"><?php esc_html_e('Latvian', 'jai-free-translator'); ?></option>
+                                <option value="lt"><?php esc_html_e('Lithuanian', 'jai-free-translator'); ?></option>
+                                <option value="lb"><?php esc_html_e('Luxembourgish', 'jai-free-translator'); ?></option>
+                                <option value="mk"><?php esc_html_e('Macedonian', 'jai-free-translator'); ?></option>
+                                <option value="mg"><?php esc_html_e('Malagasy', 'jai-free-translator'); ?></option>
+                                <option value="ms"><?php esc_html_e('Malay', 'jai-free-translator'); ?></option>
+                                <option value="ml"><?php esc_html_e('Malayalam', 'jai-free-translator'); ?></option>
+                                <option value="mt"><?php esc_html_e('Maltese', 'jai-free-translator'); ?></option>
+                                <option value="mi"><?php esc_html_e('Maori', 'jai-free-translator'); ?></option>
+                                <option value="mr"><?php esc_html_e('Marathi', 'jai-free-translator'); ?></option>
+                                <option value="mn"><?php esc_html_e('Mongolian', 'jai-free-translator'); ?></option>
+                                <option value="my"><?php esc_html_e('Myanmar (Burmese)', 'jai-free-translator'); ?></option>
+                                <option value="ne"><?php esc_html_e('Nepali', 'jai-free-translator'); ?></option>
+                                <option value="no"><?php esc_html_e('Norwegian', 'jai-free-translator'); ?></option>
+                                <option value="ps"><?php esc_html_e('Pashto', 'jai-free-translator'); ?></option>
+                                <option value="fa"><?php esc_html_e('Persian', 'jai-free-translator'); ?></option>
+                                <option value="pl"><?php esc_html_e('Polish', 'jai-free-translator'); ?></option>
+                                <option value="pt"><?php esc_html_e('Portuguese', 'jai-free-translator'); ?></option>
+                                <option value="pa"><?php esc_html_e('Punjabi', 'jai-free-translator'); ?></option>
+                                <option value="ro"><?php esc_html_e('Romanian', 'jai-free-translator'); ?></option>
+                                <option value="ru"><?php esc_html_e('Russian', 'jai-free-translator'); ?></option>
+                                <option value="sm"><?php esc_html_e('Samoan', 'jai-free-translator'); ?></option>
+                                <option value="gd"><?php esc_html_e('Scottish Gaelic', 'jai-free-translator'); ?></option>
+                                <option value="sr"><?php esc_html_e('Serbian', 'jai-free-translator'); ?></option>
+                                <option value="st"><?php esc_html_e('Sesotho', 'jai-free-translator'); ?></option>
+                                <option value="sn"><?php esc_html_e('Shona', 'jai-free-translator'); ?></option>
+                                <option value="sd"><?php esc_html_e('Sindhi', 'jai-free-translator'); ?></option>
+                                <option value="si"><?php esc_html_e('Sinhala', 'jai-free-translator'); ?></option>
+                                <option value="sk"><?php esc_html_e('Slovak', 'jai-free-translator'); ?></option>
+                                <option value="sl"><?php esc_html_e('Slovenian', 'jai-free-translator'); ?></option>
+                                <option value="so"><?php esc_html_e('Somali', 'jai-free-translator'); ?></option>
+                                <option value="es"><?php esc_html_e('Spanish', 'jai-free-translator'); ?></option>
+                                <option value="su"><?php esc_html_e('Sundanese', 'jai-free-translator'); ?></option>
+                                <option value="sw"><?php esc_html_e('Swahili', 'jai-free-translator'); ?></option>
+                                <option value="sv"><?php esc_html_e('Swedish', 'jai-free-translator'); ?></option>
+                                <option value="tg"><?php esc_html_e('Tajik', 'jai-free-translator'); ?></option>
+                                <option value="ta"><?php esc_html_e('Tamil', 'jai-free-translator'); ?></option>
+                                <option value="te"><?php esc_html_e('Telugu', 'jai-free-translator'); ?></option>
+                                <option value="th"><?php esc_html_e('Thai', 'jai-free-translator'); ?></option>
+                                <option value="tr"><?php esc_html_e('Turkish', 'jai-free-translator'); ?></option>
+                                <option value="uk"><?php esc_html_e('Ukrainian', 'jai-free-translator'); ?></option>
+                                <option value="ur"><?php esc_html_e('Urdu', 'jai-free-translator'); ?></option>
+                                <option value="uz"><?php esc_html_e('Uzbek', 'jai-free-translator'); ?></option>
+                                <option value="vi"><?php esc_html_e('Vietnamese', 'jai-free-translator'); ?></option>
+                                <option value="cy"><?php esc_html_e('Welsh', 'jai-free-translator'); ?></option>
+                                <option value="xh"><?php esc_html_e('Xhosa', 'jai-free-translator'); ?></option>
+                                <option value="yi"><?php esc_html_e('Yiddish', 'jai-free-translator'); ?></option>
+                                <option value="yo"><?php esc_html_e('Yoruba', 'jai-free-translator'); ?></option>
+                                <option value="zu"><?php esc_html_e('Zulu', 'jai-free-translator'); ?></option>
                             </select>
                         </td>
                     </tr>
                     <tr>
-                        <td class="option_name"><?php esc_html_e('Sub-directory URL structure', 'gtranslate'); ?>:<br><code><small>https://example.com/<b>es</b>/</small></code></td>
-                        <td><strong><?php esc_html_e('Enabled by default', 'gtranslate'); ?></strong> <small>(<?php esc_html_e('Configure translation API below for server-side SEO', 'gtranslate'); ?>)</small></td>
+                        <td class="option_name"><?php esc_html_e('Sub-directory URL structure', 'jai-free-translator'); ?>:<br><code><small>https://example.com/<b>es</b>/</small></code></td>
+                        <td><strong><?php esc_html_e('Enabled by default', 'jai-free-translator'); ?></strong> <small>(<?php esc_html_e('Configure translation API below for server-side SEO', 'jai-free-translator'); ?>)</small></td>
                     </tr>
                     <tr id="url_translation_option" style="display:none;">
-                        <td class="option_name"><?php esc_html_e('Enable URL Translation', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Enable URL Translation', 'jai-free-translator'); ?>:</td>
                         <td><input id="url_translation" name="url_translation" value="1" type="checkbox"/></td>
                     </tr>
                     <tr id="hreflang_tags_option" style="display:none;">
-                        <td class="option_name"><?php esc_html_e('Add hreflang tags', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Add hreflang tags', 'jai-free-translator'); ?>:</td>
                         <td><input id="add_hreflang_tags" name="add_hreflang_tags" value="1" type="checkbox"/></td>
                     </tr>
                     <tr id="email_translation_option" style="display:none;">
-                        <td class="option_name"><?php esc_html_e('Enable WooCommerce Email Translation', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Enable WooCommerce Email Translation', 'jai-free-translator'); ?>:</td>
                         <td><input id="email_translation" name="email_translation" value="1" type="checkbox"/></td>
                     </tr>
                     <tr id="email_translation_debug_option" style="display:none;">
-                        <td class="option_name"><?php esc_html_e('Debug Email Translation', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Debug Email Translation', 'jai-free-translator'); ?>:</td>
                         <td><input id="email_translation_debug" name="email_translation_debug" value="1" type="checkbox"/></td>
                     </tr>
                     <tr>
-                        <td class="option_name"><?php esc_html_e('Native language names', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Native language names', 'jai-free-translator'); ?>:</td>
                         <td><input id="native_language_names" name="native_language_names" value="1" type="checkbox" onclick="RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()"/></td>
                     </tr>
                     <tr>
-                        <td class="option_name"><?php esc_html_e('Auto switch to browser language', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Auto switch to browser language', 'jai-free-translator'); ?>:</td>
                         <td><input id="detect_browser_language" name="detect_browser_language" value="1" type="checkbox"/></td>
                     </tr>
                     <tr>
-                        <td class="option_name"><?php esc_html_e('Enable CDN', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Enable CDN', 'jai-free-translator'); ?>:</td>
                         <td><input id="enable_cdn" name="enable_cdn" value="1" type="checkbox" onclick="RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()"/></td>
                     </tr>
                     <tr id="select_language_label_option" style="display:none">
-                        <td class="option_name"><?php esc_html_e('Select language label', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Select language label', 'jai-free-translator'); ?>:</td>
                         <td><input id="select_language_label" name="select_language_label" type="text" onchange="RefreshDoWidgetCode()"/></td>
                     </tr>
                     <tr>
-                        <td class="option_name"><?php esc_html_e('Show floating language selector', 'gtranslate'); ?>: <a href="#TB_inline?width=700&height=150&inlineId=show-floating-language-selector-option-description" title="<?php echo esc_attr_e('Learn more', 'gtranslate'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a><div id="show-floating-language-selector-option-description" style="display:none"><p><?php printf(esc_html__('Show floating language selector option is the easiest and suitable for most websites. It is best for %1$sFloat%2$s, %1$sNice dropdown with flags%2$s, %1$sPopup%2$s, %1$sGlobe%2$s widget looks.', 'gtranslate'), '<b>', '</b>'); ?></p></div></td>
+                        <td class="option_name"><?php esc_html_e('Show floating language selector', 'jai-free-translator'); ?>: <a href="#TB_inline?width=700&height=150&inlineId=show-floating-language-selector-option-description" title="<?php echo esc_attr_e('Learn more', 'jai-free-translator'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a><div id="show-floating-language-selector-option-description" style="display:none"><p><?php printf(esc_html__('Show floating language selector option is the easiest and suitable for most websites. It is best for %1$sFloat%2$s, %1$sNice dropdown with flags%2$s, %1$sPopup%2$s, %1$sGlobe%2$s widget looks.', 'jai-free-translator'), '<b>', '</b>'); ?></p></div></td>
                         <td>
                             <select id="floating_language_selector" name="floating_language_selector">
-                                <option value="no"><?php esc_html_e('No', 'gtranslate'); ?></option>
-                                <option value="bottom_left"><?php esc_html_e('Bottom left', 'gtranslate'); ?></option>
-                                <option value="bottom_right"><?php esc_html_e('Bottom right', 'gtranslate'); ?></option>
-                                <option value="top_left"><?php esc_html_e('Top left', 'gtranslate'); ?></option>
-                                <option value="top_right"><?php esc_html_e('Top right', 'gtranslate'); ?></option>
+                                <option value="no"><?php esc_html_e('No', 'jai-free-translator'); ?></option>
+                                <option value="bottom_left"><?php esc_html_e('Bottom left', 'jai-free-translator'); ?></option>
+                                <option value="bottom_right"><?php esc_html_e('Bottom right', 'jai-free-translator'); ?></option>
+                                <option value="top_left"><?php esc_html_e('Top left', 'jai-free-translator'); ?></option>
+                                <option value="top_right"><?php esc_html_e('Top right', 'jai-free-translator'); ?></option>
                             </select>
                         </td>
                     </tr>
                     <tr>
-                        <td class="option_name"><?php esc_html_e('Wrapper selector CSS', 'gtranslate'); ?>: <a href="#TB_inline?width=700&height=170&inlineId=wrapper-selector-option-description" title="<?php echo esc_attr_e('Learn more', 'gtranslate'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a><div id="wrapper-selector-option-description" style="display:none"><p><?php esc_html_e('If you want the language selector to appear inside a particular HTML element on your page then this option is for you. You simply need to write a CSS selector to point to that HTML element and GTranslate will appear inside of it.', 'gtranslate'); ?></p><p><?php printf(esc_html__('If you are not using this option make sure it is empty or has the default value to not have additional unused code on your front-end. Default value for Wrapper Selector is %1$s.gtranslate_wrapper%2$s.', 'gtranslate'), '<code>', '</code>'); ?></p></div></td>
-                        <td><input id="wrapper_selector" name="wrapper_selector" type="text" placeholder=".gtranslate_wrapper" onchange="RefreshDoWidgetCode()"/></td>
+                        <td class="option_name"><?php esc_html_e('Wrapper selector CSS', 'jai-free-translator'); ?>: <a href="#TB_inline?width=700&height=170&inlineId=wrapper-selector-option-description" title="<?php echo esc_attr_e('Learn more', 'jai-free-translator'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a><div id="wrapper-selector-option-description" style="display:none"><p><?php esc_html_e('If you want the language selector to appear inside a particular HTML element on your page then this option is for you. You simply need to write a CSS selector to point to that HTML element and the translator will appear inside of it.', 'jai-free-translator'); ?></p><p><?php printf(esc_html__('If you are not using this option make sure it is empty or has the default value to not have additional unused code on your front-end. Default value for Wrapper Selector is %1$s.jaitranslator_wrapper%2$s.', 'jai-free-translator'), '<code>', '</code>'); ?></p></div></td>
+                        <td><input id="wrapper_selector" name="wrapper_selector" type="text" placeholder=".jaitranslator_wrapper" onchange="RefreshDoWidgetCode()"/></td>
                     </tr>
                     <tr id="float_switcher_open_direction_option" style="display:none">
-                        <td class="option_name"><?php esc_html_e('Open direction', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Open direction', 'jai-free-translator'); ?>:</td>
                         <td>
                             <select id="float_switcher_open_direction" name="float_switcher_open_direction" onchange="RefreshDoWidgetCode()">
-                                <option value="left"><?php esc_html_e('Left', 'gtranslate'); ?></option>
-                                <option value="right"><?php esc_html_e('Right', 'gtranslate'); ?></option>
-                                <option value="top"><?php esc_html_e('Up', 'gtranslate'); ?></option>
-                                <option value="bottom"><?php esc_html_e('Down', 'gtranslate'); ?></option>
+                                <option value="left"><?php esc_html_e('Left', 'jai-free-translator'); ?></option>
+                                <option value="right"><?php esc_html_e('Right', 'jai-free-translator'); ?></option>
+                                <option value="top"><?php esc_html_e('Up', 'jai-free-translator'); ?></option>
+                                <option value="bottom"><?php esc_html_e('Down', 'jai-free-translator'); ?></option>
                             </select>
                         </td>
                     </tr>
                     <tr id="switcher_open_direction_option" style="display:none">
-                        <td class="option_name"><?php esc_html_e('Open direction', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Open direction', 'jai-free-translator'); ?>:</td>
                         <td>
                             <select id="switcher_open_direction" name="switcher_open_direction" onchange="RefreshDoWidgetCode()">
-                                <option value="top"><?php esc_html_e('Up', 'gtranslate'); ?></option>
-                                <option value="bottom"><?php esc_html_e('Down', 'gtranslate'); ?></option>
+                                <option value="top"><?php esc_html_e('Up', 'jai-free-translator'); ?></option>
+                                <option value="bottom"><?php esc_html_e('Down', 'jai-free-translator'); ?></option>
                             </select>
                         </td>
                     </tr>
                     <tr id="flag_size_option">
-                        <td class="option_name"><?php esc_html_e('Flag size', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Flag size', 'jai-free-translator'); ?>:</td>
                         <td>
                         <select id="flag_size"  name="flag_size" onchange="RefreshDoWidgetCode()">
                             <option value="16" selected>16px</option>
@@ -1075,7 +1200,7 @@ EOT;
                         </td>
                     </tr>
                     <tr id="flag_style_option">
-                        <td class="option_name"><?php esc_html_e('Flag style', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Flag style', 'jai-free-translator'); ?>:</td>
                         <td>
                         <select id="flag_style"  name="flag_style" onchange="RefreshDoWidgetCode()">
                             <option value="3d">3D (.png)</option>
@@ -1084,7 +1209,7 @@ EOT;
                         </td>
                     </tr>
                     <tr id="globe_size_option">
-                        <td class="option_name"><?php esc_html_e('Globe size', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Globe size', 'jai-free-translator'); ?>:</td>
                         <td>
                         <select id="globe_size"  name="globe_size" onchange="RefreshDoWidgetCode()">
                             <option value="20">20px</option>
@@ -1094,14 +1219,14 @@ EOT;
                         </td>
                     </tr>
                     <tr id="flag_languages_option" style="display:none;">
-                        <td class="option_name" colspan="2"><div><?php esc_html_e('Flag languages', 'gtranslate'); ?>: <a onclick="jQuery('.connectedSortable1 input').attr('checked', true);RefreshDoWidgetCode()" style="cursor:pointer;text-decoration:underline;"><?php esc_html_e('Check All', 'gtranslate'); ?></a> | <a onclick="jQuery('.connectedSortable1 input').attr('checked', false);RefreshDoWidgetCode()" style="cursor:pointer;text-decoration:underline;"><?php esc_html_e('Uncheck All', 'gtranslate'); ?></a> <span style="float:right;"><?php printf(esc_html__('%1$sHINT%2$s: To reorder the languages simply drag and drop them in the list below.', 'gtranslate'), '<b>', '</b>'); ?></span></div><br />
+                        <td class="option_name" colspan="2"><div><?php esc_html_e('Flag languages', 'jai-free-translator'); ?>: <a onclick="jQuery('.connectedSortable1 input').attr('checked', true);RefreshDoWidgetCode()" style="cursor:pointer;text-decoration:underline;"><?php esc_html_e('Check All', 'jai-free-translator'); ?></a> | <a onclick="jQuery('.connectedSortable1 input').attr('checked', false);RefreshDoWidgetCode()" style="cursor:pointer;text-decoration:underline;"><?php esc_html_e('Uncheck All', 'jai-free-translator'); ?></a> <span style="float:right;"><?php printf(esc_html__('%1$sHINT%2$s: To reorder the languages simply drag and drop them in the list below.', 'jai-free-translator'), '<b>', '</b>'); ?></span></div><br />
                         <div>
                         <?php $gt_lang_codes = explode(',', $language_codes); ?>
                         <?php for($i = 0; $i < count($gt_lang_array) / 26; $i++): ?>
                         <ul style="list-style-type:none;width:25%;float:left;" class="connectedSortable1">
                             <?php for($j = $i * 26; $j < 26 * ($i+1); $j++): ?>
                             <?php if(isset($gt_lang_codes[$j])): ?>
-                            <li><input type="checkbox" onclick="RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()" id="fincl_langs<?php echo $gt_lang_codes[$j]; ?>" name="fincl_langs[]" value="<?php echo $gt_lang_codes[$j]; ?>"><label for="fincl_langs<?php echo $gt_lang_codes[$j]; ?>"><span class="en_names"><?php esc_html_e($gt_lang_array[$gt_lang_codes[$j]], 'gtranslate'); ?></span></label></li>
+                            <li><input type="checkbox" onclick="RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()" id="fincl_langs<?php echo $gt_lang_codes[$j]; ?>" name="fincl_langs[]" value="<?php echo $gt_lang_codes[$j]; ?>"><label for="fincl_langs<?php echo $gt_lang_codes[$j]; ?>"><span class="en_names"><?php esc_html_e($gt_lang_array[$gt_lang_codes[$j]], 'jai-free-translator'); ?></span></label></li>
                             <?php endif; ?>
                             <?php endfor; ?>
                         </ul>
@@ -1110,18 +1235,18 @@ EOT;
                         </td>
                     </tr>
                     <tr id="line_break_option" style="display:none;">
-                        <td class="option_name"><?php esc_html_e('Line break after flags', 'gtranslate'); ?>:</td>
+                        <td class="option_name"><?php esc_html_e('Line break after flags', 'jai-free-translator'); ?>:</td>
                         <td><input id="add_new_line" name="add_new_line" value="1" type="checkbox" checked="checked" onclick="RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()"/></td>
                     </tr>
                     <tr id="dropdown_languages_option" style="display:none;">
-                        <td class="option_name" colspan="2"><div><?php esc_html_e('Languages', 'gtranslate'); ?>: <a onclick="jQuery('.connectedSortable2 input').attr('checked', true);RefreshDoWidgetCode()" style="cursor:pointer;text-decoration:underline;"><?php esc_html_e('Check All', 'gtranslate'); ?></a> | <a onclick="jQuery('.connectedSortable2 input').attr('checked', false);RefreshDoWidgetCode()" style="cursor:pointer;text-decoration:underline;"><?php esc_html_e('Uncheck All', 'gtranslate'); ?></a> <span style="float:right;"><?php printf(esc_html__('%1$sHINT%2$s: To reorder the languages simply drag and drop them in the list below.', 'gtranslate'), '<b>', '</b>'); ?></span></div><br />
+                        <td class="option_name" colspan="2"><div><?php esc_html_e('Languages', 'jai-free-translator'); ?>: <a onclick="jQuery('.connectedSortable2 input').attr('checked', true);RefreshDoWidgetCode()" style="cursor:pointer;text-decoration:underline;"><?php esc_html_e('Check All', 'jai-free-translator'); ?></a> | <a onclick="jQuery('.connectedSortable2 input').attr('checked', false);RefreshDoWidgetCode()" style="cursor:pointer;text-decoration:underline;"><?php esc_html_e('Uncheck All', 'jai-free-translator'); ?></a> <span style="float:right;"><?php printf(esc_html__('%1$sHINT%2$s: To reorder the languages simply drag and drop them in the list below.', 'jai-free-translator'), '<b>', '</b>'); ?></span></div><br />
                         <div>
                         <?php $gt_lang_codes = explode(',', $language_codes2); ?>
                         <?php for($i = 0; $i < count($gt_lang_array) / 26; $i++): ?>
                         <ul style="list-style-type:none;width:25%;float:left;" class="connectedSortable2">
                             <?php for($j = $i * 26; $j < 26 * ($i+1); $j++): ?>
                             <?php if(isset($gt_lang_codes[$j])): ?>
-                            <li><input type="checkbox" onclick="RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()" id="incl_langs<?php echo $gt_lang_codes[$j]; ?>" name="incl_langs[]" value="<?php echo $gt_lang_codes[$j]; ?>"><label for="incl_langs<?php echo $gt_lang_codes[$j]; ?>"><span class="en_names"><?php esc_html_e($gt_lang_array[$gt_lang_codes[$j]], 'gtranslate'); ?></span></label></li>
+                            <li><input type="checkbox" onclick="RefreshDoWidgetCode()" onchange="RefreshDoWidgetCode()" id="incl_langs<?php echo $gt_lang_codes[$j]; ?>" name="incl_langs[]" value="<?php echo $gt_lang_codes[$j]; ?>"><label for="incl_langs<?php echo $gt_lang_codes[$j]; ?>"><span class="en_names"><?php esc_html_e($gt_lang_array[$gt_lang_codes[$j]], 'jai-free-translator'); ?></span></label></li>
                             <?php endif; ?>
                             <?php endfor; ?>
                         </ul>
@@ -1136,52 +1261,52 @@ EOT;
 
         <div id="poststuff">
             <div class="postbox">
-                <h3 id="translation-api-settings"><?php esc_html_e('Translation API (Server-Side Translation for SEO)', 'gtranslate'); ?></h3>
+                <h3 id="translation-api-settings"><?php esc_html_e('Translation API (Server-Side Translation for SEO)', 'jai-free-translator'); ?></h3>
                 <div class="inside">
-                    <p style="margin:10px 0;"><strong><?php esc_html_e('Configure a translation API for proper SEO:', 'gtranslate'); ?></strong></p>
+                    <p style="margin:10px 0;"><strong><?php esc_html_e('Configure a translation API for proper SEO:', 'jai-free-translator'); ?></strong></p>
                     <ul style="margin-left:20px;list-style:disc;">
-                        <li><?php esc_html_e('Search engines see translated content (not English on /es/ URLs)', 'gtranslate'); ?></li>
-                        <li><?php esc_html_e('Links stay in chosen language when navigating', 'gtranslate'); ?></li>
-                        <li><?php esc_html_e('No URL redirects - clean /es/page URLs from start to finish', 'gtranslate'); ?></li>
-                        <li><?php esc_html_e('Fast: cached translations serve instantly', 'gtranslate'); ?></li>
+                        <li><?php esc_html_e('Search engines see translated content (not English on /es/ URLs)', 'jai-free-translator'); ?></li>
+                        <li><?php esc_html_e('Links stay in chosen language when navigating', 'jai-free-translator'); ?></li>
+                        <li><?php esc_html_e('No URL redirects - clean /es/page URLs from start to finish', 'jai-free-translator'); ?></li>
+                        <li><?php esc_html_e('Fast: cached translations serve instantly', 'jai-free-translator'); ?></li>
                     </ul>
                     <table style="width:100%;margin-top:15px;" cellpadding="4">
                         <tr>
-                            <td class="option_name" style="width:200px;"><?php esc_html_e('Translation API Provider', 'gtranslate'); ?>:</td>
+                            <td class="option_name" style="width:200px;"><?php esc_html_e('Translation API Provider', 'jai-free-translator'); ?>:</td>
                             <td>
                                 <select id="translation_api_provider" name="translation_api_provider" style="width:250px;">
-                                    <option value=""><?php esc_html_e('None (Client-side fallback)', 'gtranslate'); ?></option>
-                                    <option value="deepl"><?php esc_html_e('DeepL API Free (500k chars/month)', 'gtranslate'); ?></option>
-                                    <option value="google"><?php esc_html_e('Google Cloud Translation API', 'gtranslate'); ?></option>
+                                    <option value=""><?php esc_html_e('None (Client-side fallback)', 'jai-free-translator'); ?></option>
+                                    <option value="deepl"><?php esc_html_e('DeepL API Free (500k chars/month)', 'jai-free-translator'); ?></option>
+                                    <option value="google"><?php esc_html_e('Google Cloud Translation API', 'jai-free-translator'); ?></option>
                                 </select>
                             </td>
                         </tr>
                         <tr id="deepl_api_key_row" style="display:none;">
-                            <td class="option_name"><?php esc_html_e('DeepL API Key', 'gtranslate'); ?>:</td>
+                            <td class="option_name"><?php esc_html_e('DeepL API Key', 'jai-free-translator'); ?>:</td>
                             <td>
                                 <input type="password" id="deepl_api_key" name="deepl_api_key" value="<?php echo esc_attr(isset($data['deepl_api_key']) ? $data['deepl_api_key'] : ''); ?>" style="width:400px;" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"/>
-                                <p class="description"><?php printf(esc_html__('Get free API key at %s (500,000 characters/month)', 'gtranslate'), '<a href="https://www.deepl.com/pro-api" target="_blank">deepl.com/pro-api</a>'); ?></p>
+                                <p class="description"><?php printf(esc_html__('Get free API key at %s (500,000 characters/month)', 'jai-free-translator'), '<a href="https://www.deepl.com/pro-api" target="_blank">deepl.com/pro-api</a>'); ?></p>
                             </td>
                         </tr>
                         <tr id="google_api_key_row" style="display:none;">
-                            <td class="option_name"><?php esc_html_e('Google Cloud API Key', 'gtranslate'); ?>:</td>
+                            <td class="option_name"><?php esc_html_e('Google Cloud API Key', 'jai-free-translator'); ?>:</td>
                             <td>
                                 <input type="password" id="google_translate_api_key" name="google_translate_api_key" value="<?php echo esc_attr(isset($data['google_translate_api_key']) ? $data['google_translate_api_key'] : ''); ?>" style="width:400px;" placeholder="AIzaSy..."/>
-                                <p class="description"><?php printf(esc_html__('Create API key in %s ($20 per 1M characters)', 'gtranslate'), '<a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>'); ?></p>
+                                <p class="description"><?php printf(esc_html__('Create API key in %s ($20 per 1M characters)', 'jai-free-translator'), '<a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>'); ?></p>
                             </td>
                         </tr>
                         <tr id="cache_ttl_row" style="display:none;">
-                            <td class="option_name"><?php esc_html_e('Cache Duration (days)', 'gtranslate'); ?>:</td>
+                            <td class="option_name"><?php esc_html_e('Cache Duration (days)', 'jai-free-translator'); ?>:</td>
                             <td>
-                                <input type="number" id="translation_cache_ttl" name="translation_cache_ttl" value="<?php echo esc_attr(isset($data['translation_cache_ttl']) ? $data['translation_cache_ttl'] : '30'); ?>" min="1" max="365" style="width:80px;"/> <?php esc_html_e('days', 'gtranslate'); ?>
-                                <p class="description"><?php esc_html_e('How long to cache translations (default: 30 days)', 'gtranslate'); ?></p>
+                                <input type="number" id="translation_cache_ttl" name="translation_cache_ttl" value="<?php echo esc_attr(isset($data['translation_cache_ttl']) ? $data['translation_cache_ttl'] : '30'); ?>" min="1" max="365" style="width:80px;"/> <?php esc_html_e('days', 'jai-free-translator'); ?>
+                                <p class="description"><?php esc_html_e('How long to cache translations (default: 30 days)', 'jai-free-translator'); ?></p>
                             </td>
                         </tr>
                         <tr id="clear_cache_row" style="display:none;">
-                            <td class="option_name"><?php esc_html_e('Clear Cache', 'gtranslate'); ?>:</td>
+                            <td class="option_name"><?php esc_html_e('Clear Cache', 'jai-free-translator'); ?>:</td>
                             <td>
-                                <button type="button" id="clear_translation_cache" class="button"><?php esc_html_e('Clear All Translations Cache', 'gtranslate'); ?></button>
-                                <p class="description"><?php esc_html_e('Clear cached translations to force re-translation', 'gtranslate'); ?></p>
+                                <button type="button" id="clear_translation_cache" class="button"><?php esc_html_e('Clear All Translations Cache', 'jai-free-translator'); ?></button>
+                                <p class="description"><?php esc_html_e('Clear cached translations to force re-translation', 'jai-free-translator'); ?></p>
                             </td>
                         </tr>
                     </table>
@@ -1202,9 +1327,9 @@ EOT;
                         updateAPIKeyFields();
 
                         $('#clear_translation_cache').click(function() {
-                            if(confirm('<?php esc_html_e('Are you sure you want to clear all cached translations?', 'gtranslate'); ?>')) {
-                                $.post(ajaxurl, {action: 'gtranslate_clear_cache'}, function(response) {
-                                    alert(response.data.message || '<?php esc_html_e('Cache cleared successfully', 'gtranslate'); ?>');
+                            if(confirm('<?php esc_html_e('Are you sure you want to clear all cached translations?', 'jai-free-translator'); ?>')) {
+                                $.post(ajaxurl, {action: 'jaitranslator_clear_cache'}, function(response) {
+                                    alert(response.data.message || '<?php esc_html_e('Cache cleared successfully', 'jai-free-translator'); ?>');
                                 });
                             }
                         });
@@ -1216,7 +1341,7 @@ EOT;
 
         <div id="poststuff">
             <div class="postbox">
-                <h3 id="settings"><?php esc_html_e('Custom CSS', 'gtranslate'); ?> <a href="#TB_inline?width=700&height=170&inlineId=common-customization-tips-description" title="<?php esc_attr_e('Common customizations tips'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a></h3>
+                <h3 id="settings"><?php esc_html_e('Custom CSS', 'jai-free-translator'); ?> <a href="#TB_inline?width=700&height=170&inlineId=common-customization-tips-description" title="<?php esc_attr_e('Common customizations tips'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-editor-help"></span></a></h3>
                 <div class="inside">
                     <textarea id="custom_css" name="custom_css" onchange="RefreshDoWidgetCode()" style="font-family:Monospace;font-size:11px;height:150px;width:565px;"><?php echo htmlspecialchars($custom_css, ENT_QUOTES, get_option('blog_charset')); ?></textarea><br />
                     <div id="common-customization-tips-description" style="display:none">
@@ -1251,11 +1376,9 @@ EOT;
 
         <input type="hidden" id="language_codes_order" name="language_codes" value="<?php echo $language_codes; ?>" />
         <input type="hidden" id="language_codes_order2" name="language_codes2" value="<?php echo $language_codes2; ?>" />
-        <?php wp_nonce_field('gtranslate-save'); ?>
+        <?php wp_nonce_field('jaitranslator-save'); ?>
 
-        <p class="submit"><input type="submit" class="button-primary" name="save" value="<?php esc_attr_e('Save Changes', 'gtranslate'); ?>" /></p>
-
-        <p style="margin-top:-10px;"><a target="_blank" href="https://wordpress.org/support/plugin/gtranslate/reviews/?filter=5" rel="noreferrer"><?php esc_html_e('Love GTranslate? Give us 5 stars on WordPress.org :)', 'gtranslate'); ?></a></p>
+        <p class="submit"><input type="submit" class="button-primary" name="save" value="<?php esc_attr_e('Save Changes', 'jai-free-translator'); ?>" /></p>
 
         </div>
 
@@ -1264,7 +1387,7 @@ EOT;
         <div class="postbox-container og_right_col">
             <div id="poststuff">
                 <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Widget preview', 'gtranslate'); ?></h3>
+                    <h3 id="settings"><?php esc_html_e('Widget preview', 'jai-free-translator'); ?></h3>
                     <div class="inside">
                         <div id="widget_preview"></div>
                     </div>
@@ -1273,12 +1396,12 @@ EOT;
 
             <div id="poststuff" class="custom_domains_list" style="display:none;">
                 <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Language hosting', 'gtranslate'); ?></h3>
+                    <h3 id="settings"><?php esc_html_e('Language hosting', 'jai-free-translator'); ?></h3>
                     <div class="inside">
                         <table id="custom_domains_list_tbl" style="width:100%;" cellpadding="0">
                             <tr>
-                                <th><?php esc_html_e('Language', 'gtranslate'); ?></th>
-                                <th><?php esc_html_e('Domain', 'gtranslate'); ?></th>
+                                <th><?php esc_html_e('Language', 'jai-free-translator'); ?></th>
+                                <th><?php esc_html_e('Domain', 'jai-free-translator'); ?></th>
                             </tr>
                             <?php
                             if(isset($data['custom_domains_data']) and !empty($data['custom_domains_data'])) {
@@ -1290,52 +1413,50 @@ EOT;
                             }
                             ?>
                         </table>
-                        <br>
-                        <input type="button" class="button-secondary" value="Synchronize" onclick="SyncCustomDomains();RefreshDoWidgetCode();" title="<?php esc_attr_e('Synchronize custom domains with GTranslate dashboard: https://my.gtranslate.io', 'gtranslate'); ?>">
                     </div>
                 </div>
             </div>
 
             <div id="poststuff" class="switcher_color_options" style="display:none">
                 <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Color options', 'gtranslate'); ?> ( <a href="#" onclick="return light_color_scheme()"><?php esc_html_e('light', 'gtranslate'); ?></a> | <a href="#" onclick="return dark_color_scheme()"><?php esc_html_e('dark', 'gtranslate'); ?></a> )</h3>
+                    <h3 id="settings"><?php esc_html_e('Color options', 'jai-free-translator'); ?> ( <a href="#" onclick="return light_color_scheme()"><?php esc_html_e('light', 'jai-free-translator'); ?></a> | <a href="#" onclick="return dark_color_scheme()"><?php esc_html_e('dark', 'jai-free-translator'); ?></a> )</h3>
                     <div class="inside">
                         <table style="width:100%;" cellpadding="0">
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Switcher text color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Switcher text color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="switcher_text_color" id="switcher_text_color" class="color-field" value="#666" data-default-color="#666" /></td>
                             </tr>
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Switcher arrow color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Switcher arrow color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="switcher_arrow_color" id="switcher_arrow_color" class="color-field" value="#666" data-default-color="#666" /></td>
                             </tr>
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Switcher border color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Switcher border color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="switcher_border_color" id="switcher_border_color" class="color-field" value="#ccc" data-default-color="#ccc" /></td>
                             </tr>
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Switcher background color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Switcher background color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="switcher_background_color" id="switcher_background_color" class="color-field" value="#fff" data-default-color="#fff" /></td>
                             </tr>
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Switcher background shadow color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Switcher background shadow color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="switcher_background_shadow_color" id="switcher_background_shadow_color" class="color-field" value="#fff" data-default-color="#efefef" /></td>
                             </tr>
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Switcher background hover color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Switcher background hover color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="switcher_background_hover_color" id="switcher_background_hover_color" class="color-field" value="#f0f0f0" data-default-color="#f0f0f0" /></td>
                             </tr>
 
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Dropdown text color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Dropdown text color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="dropdown_text_color" id="dropdown_text_color" class="color-field" value="#000" data-default-color="#000" /></td>
                             </tr>
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Dropdown hover color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Dropdown hover color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="dropdown_hover_color" id="dropdown_hover_color" class="color-field" value="#fff" data-default-color="#fff" /></td>
                             </tr>
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Dropdown background color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Dropdown background color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="dropdown_background_color" id="dropdown_background_color" class="color-field" value="#eee" data-default-color="#eee" /></td>
                             </tr>
                         </table>
@@ -1345,11 +1466,11 @@ EOT;
 
             <div id="poststuff" class="globe_color_options" style="display:none">
                 <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Color options', 'gtranslate'); ?></h3>
+                    <h3 id="settings"><?php esc_html_e('Color options', 'jai-free-translator'); ?></h3>
                     <div class="inside">
                         <table style="width:100%;" cellpadding="0">
                             <tr>
-                                <td class="option_name"><?php esc_html_e('Globe color', 'gtranslate'); ?>:</td>
+                                <td class="option_name"><?php esc_html_e('Globe color', 'jai-free-translator'); ?>:</td>
                                 <td><input type="text" name="globe_color" id="globe_color" class="color-field" value="#66aaff" data-default-color="#66aaff" /></td>
                             </tr>
                         </table>
@@ -1359,108 +1480,35 @@ EOT;
 
             <div id="poststuff" class="alternative_flags_option">
                 <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Alternative flags', 'gtranslate'); ?></h3>
+                    <h3 id="settings"><?php esc_html_e('Alternative flags', 'jai-free-translator'); ?></h3>
                     <div class="inside">
-                        <input type="checkbox" id="alt_us" name="alt_flags2[]" value="us" data-lang-group="en"><label for="alt_us"><?php esc_html_e('USA flag', 'gtranslate'); ?> (<?php esc_html_e('English', 'gtranslate'); ?>)</label><br />
-                        <input type="checkbox" id="alt_ca" name="alt_flags2[]" value="ca" data-lang-group="en"><label for="alt_ca"><?php esc_html_e('Canada flag', 'gtranslate'); ?> (<?php esc_html_e('English', 'gtranslate'); ?>)</label><br />
-                        <input type="checkbox" id="alt_br" name="alt_flags2[]" value="br" data-lang-group="pt"><label for="alt_br"><?php esc_html_e('Brazil flag', 'gtranslate'); ?> (<?php esc_html_e('Portuguese', 'gtranslate'); ?>)</label><br />
-                        <input type="checkbox" id="alt_mx" name="alt_flags2[]" value="mx" data-lang-group="es"><label for="alt_mx"><?php esc_html_e('Mexico flag', 'gtranslate'); ?> (<?php esc_html_e('Spanish', 'gtranslate'); ?>)</label><br />
-                        <input type="checkbox" id="alt_ar" name="alt_flags2[]" value="ar" data-lang-group="es"><label for="alt_ar"><?php esc_html_e('Argentina flag', 'gtranslate'); ?> (<?php esc_html_e('Spanish', 'gtranslate'); ?>)</label><br />
-                        <input type="checkbox" id="alt_co" name="alt_flags2[]" value="co" data-lang-group="es"><label for="alt_co"><?php esc_html_e('Colombia flag', 'gtranslate'); ?> (<?php esc_html_e('Spanish', 'gtranslate'); ?>)</label><br />
-                        <input type="checkbox" id="alt_qc" name="alt_flags2[]" value="qc" data-lang-group="fr"><label for="alt_qc"><?php esc_html_e('Quebec flag', 'gtranslate'); ?> (<?php esc_html_e('French', 'gtranslate'); ?>)</label><br />
+                        <input type="checkbox" id="alt_us" name="alt_flags2[]" value="us" data-lang-group="en"><label for="alt_us"><?php esc_html_e('USA flag', 'jai-free-translator'); ?> (<?php esc_html_e('English', 'jai-free-translator'); ?>)</label><br />
+                        <input type="checkbox" id="alt_ca" name="alt_flags2[]" value="ca" data-lang-group="en"><label for="alt_ca"><?php esc_html_e('Canada flag', 'jai-free-translator'); ?> (<?php esc_html_e('English', 'jai-free-translator'); ?>)</label><br />
+                        <input type="checkbox" id="alt_br" name="alt_flags2[]" value="br" data-lang-group="pt"><label for="alt_br"><?php esc_html_e('Brazil flag', 'jai-free-translator'); ?> (<?php esc_html_e('Portuguese', 'jai-free-translator'); ?>)</label><br />
+                        <input type="checkbox" id="alt_mx" name="alt_flags2[]" value="mx" data-lang-group="es"><label for="alt_mx"><?php esc_html_e('Mexico flag', 'jai-free-translator'); ?> (<?php esc_html_e('Spanish', 'jai-free-translator'); ?>)</label><br />
+                        <input type="checkbox" id="alt_ar" name="alt_flags2[]" value="ar" data-lang-group="es"><label for="alt_ar"><?php esc_html_e('Argentina flag', 'jai-free-translator'); ?> (<?php esc_html_e('Spanish', 'jai-free-translator'); ?>)</label><br />
+                        <input type="checkbox" id="alt_co" name="alt_flags2[]" value="co" data-lang-group="es"><label for="alt_co"><?php esc_html_e('Colombia flag', 'jai-free-translator'); ?> (<?php esc_html_e('Spanish', 'jai-free-translator'); ?>)</label><br />
+                        <input type="checkbox" id="alt_qc" name="alt_flags2[]" value="qc" data-lang-group="fr"><label for="alt_qc"><?php esc_html_e('Quebec flag', 'jai-free-translator'); ?> (<?php esc_html_e('French', 'jai-free-translator'); ?>)</label><br />
                     </div>
                 </div>
             </div>
 
             <div id="poststuff">
                 <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Language selector positioning tips', 'gtranslate'); ?></h3>
+                    <h3 id="settings"><?php esc_html_e('Language selector positioning tips', 'jai-free-translator'); ?></h3>
                     <div class="inside">
                         <ul style="list-style-type:square;padding-left:20px;">
-                            <li style="margin:0;"><?php esc_html_e('Show floating language selector option is the easiest and suitable for most websites.', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php printf(esc_html__('Show in menu option is best for %1$sFlags%2$s, %1$sFlags with language name%2$s, %1$sFlags with language code%2$s, %1$sLanguage names%2$s, %1$sLanguage codes%2$s widget looks.', 'gtranslate'), '<b>', '</b>'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('You can use GTranslate Widget in any pre-defined widget locations.', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php printf(esc_html__('%1$s[gtranslate]%2$s shortcode can be used anywhere on your website.', 'gtranslate'), '<code>', '</code>'); ?> <a href="#TB_inline?width=700&height=170&inlineId=gtranslate-shortcode-description" title="<?php echo esc_attr_e('Learn more', 'gtranslate'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-welcome-learn-more"></span></a><div id="gtranslate-shortcode-description" style="display:none"><p><?php printf(esc_html__('You can use %1$s[gtranslate]%2$s inside posts, menu items or anywhere else.', 'gtranslate'), '<code>', '</code>'); ?> <?php printf(esc_html__('In theme files you can call %1$secho do_shortcode(\'[gtranslate]\');%2$s in PHP context.', 'gtranslate'), '<code>', '</code>'); ?></p><p><?php printf(esc_html__('You can use additional %1$swidget_look%2$s attribute to place a specific selector, for example %1$s[gtranslate widget_look="popup"]%2$s. Valid values are %3$sfloat%4$s, %3$sdropdown_with_flags%4$s, %3$spopup%4$s, %3$sdropdown%4$s, %3$sflags%4$s, %3$sflags_dropdown%4$s, %3$sflags_name%4$s, %3$sflags_code%4$s, %3$slang_names%4$s, %3$slang_codes%4$s, %3$sglobe%4$s.', 'gtranslate'), '<code>', '</code>', '<b>', '</b>'); ?></p></div></li>
-                            <li style="margin:0;"><?php printf(esc_html__('%1$s[gt-link lang="en" label="English" widget_look="flags_name"]%2$s shortcode can be used to render individual language links.', 'gtranslate'), '<code>', '</code>'); ?> <a href="#TB_inline?width=700&height=240&inlineId=gt-link-shortcode-description" title="<?php esc_attr_e('Learn more', 'gtranslate'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-welcome-learn-more"></span></a><div id="gt-link-shortcode-description" style="display:none"><p><?php printf(esc_html__('It is mainly used to easily place individual language links inside menu items. For example you can create a menu item with URL = #, Navigation Label = Spanish and Description = %1$s[gt-link lang="es" label="Spanish" widget_look="flags_name"]%2$s and a single menu item will appear to change the language to Spanish.', 'gtranslate'), '<code>', '</code>'); ?></p><p><?php printf(esc_html__('Valid values for %1$swidget_look%2$s attribute are %3$sflags%4$s, %3$sflags_code%4$s, %3$sflags_name%4$s, %3$slang_codes%4$s, %3$slang_names%4$s.', 'gtranslate'), '<code>', '</code>', '<b>', '</b>'); ?></p><p><?php printf(esc_html__('Language codes for %1$slang%2$s attribute are case sensitive. The full list can be found on %3$shttps://gtranslate.io/supported-languages%4$s.', 'gtranslate'), '<code>', '</code>', '<a href="https://gtranslate.io/supported-languages" target="_blank" rel="noreferrer">', '</a>'); ?></p></div></li>
-                            <li style="margin:0;"><?php esc_html_e('Wrapper selector CSS can be used to render the language selector inside matching elements.', 'gtranslate'); ?></li>
+                            <li style="margin:0;"><?php esc_html_e('Show floating language selector option is the easiest and suitable for most websites.', 'jai-free-translator'); ?></li>
+                            <li style="margin:0;"><?php printf(esc_html__('Show in menu option is best for %1$sFlags%2$s, %1$sFlags with language name%2$s, %1$sFlags with language code%2$s, %1$sLanguage names%2$s, %1$sLanguage codes%2$s widget looks.', 'jai-free-translator'), '<b>', '</b>'); ?></li>
+                            <li style="margin:0;"><?php esc_html_e('You can use JAI Translator Widget in any pre-defined widget locations.', 'jai-free-translator'); ?></li>
+                            <li style="margin:0;"><?php printf(esc_html__('%1$s[jaitranslator] (or [gtranslate] for backward compatibility)%2$s shortcode can be used anywhere on your website.', 'jai-free-translator'), '<code>', '</code>'); ?> <a href="#TB_inline?width=700&height=170&inlineId=jaitranslator-shortcode-description" title="<?php echo esc_attr_e('Learn more', 'jai-free-translator'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-welcome-learn-more"></span></a><div id="jaitranslator-shortcode-description" style="display:none"><p><?php printf(esc_html__('You can use %1$s[jaitranslator] (or [gtranslate] for backward compatibility)%2$s inside posts, menu items or anywhere else.', 'jai-free-translator'), '<code>', '</code>'); ?> <?php printf(esc_html__('In theme files you can call %1$secho do_shortcode(\'[jaitranslator] (or [gtranslate] for backward compatibility)\');%2$s in PHP context.', 'jai-free-translator'), '<code>', '</code>'); ?></p><p><?php printf(esc_html__('You can use additional %1$swidget_look%2$s attribute to place a specific selector, for example %1$s[gtranslate widget_look="popup"]%2$s. Valid values are %3$sfloat%4$s, %3$sdropdown_with_flags%4$s, %3$spopup%4$s, %3$sdropdown%4$s, %3$sflags%4$s, %3$sflags_dropdown%4$s, %3$sflags_name%4$s, %3$sflags_code%4$s, %3$slang_names%4$s, %3$slang_codes%4$s, %3$sglobe%4$s.', 'jai-free-translator'), '<code>', '</code>', '<b>', '</b>'); ?></p></div></li>
+                            <li style="margin:0;"><?php printf(esc_html__('%1$s[gt-link lang="en" label="English" widget_look="flags_name"]%2$s shortcode can be used to render individual language links.', 'jai-free-translator'), '<code>', '</code>'); ?> <a href="#TB_inline?width=700&height=240&inlineId=gt-link-shortcode-description" title="<?php esc_attr_e('Learn more', 'jai-free-translator'); ?>" class="thickbox" style="text-decoration:none"><span class="dashicons dashicons-welcome-learn-more"></span></a><div id="gt-link-shortcode-description" style="display:none"><p><?php printf(esc_html__('It is mainly used to easily place individual language links inside menu items. For example you can create a menu item with URL = #, Navigation Label = Spanish and Description = %1$s[gt-link lang="es" label="Spanish" widget_look="flags_name"]%2$s and a single menu item will appear to change the language to Spanish.', 'jai-free-translator'), '<code>', '</code>'); ?></p><p><?php printf(esc_html__('Valid values for %1$swidget_look%2$s attribute are %3$sflags%4$s, %3$sflags_code%4$s, %3$sflags_name%4$s, %3$slang_codes%4$s, %3$slang_names%4$s.', 'jai-free-translator'), '<code>', '</code>', '<b>', '</b>'); ?></p><p><?php esc_html_e('Language codes for lang attribute are case sensitive (e.g., en, es, fr, de, zh-CN, zh-TW).', 'jai-free-translator'); ?></p></div></li>
+                            <li style="margin:0;"><?php esc_html_e('Wrapper selector CSS can be used to render the language selector inside matching elements.', 'jai-free-translator'); ?></li>
                         </ul>
                     </div>
                 </div>
             </div>
 
-            <div id="poststuff">
-                <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Paid version advantages', 'gtranslate'); ?></h3>
-                    <div class="inside">
-                        <ul style="list-style-type:square;padding-left:20px;">
-                            <li style="margin:0;"><?php esc_html_e('Search engine indexing', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('Search engine friendly (SEF) URLs', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('Human level neural translations', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('Edit translations manually', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><a href="https://gtranslate.io/website-translation-quote" title="<?php esc_attr_e('Website Translation Price Calculator', 'gtranslate'); ?>" target="_blank" rel="noreferrer"><?php esc_html_e('Automatic translation post-editing service and professional translations', 'gtranslate'); ?></a></li>
-                            <li style="margin:0;"><?php esc_html_e('Meta data translation (keywords, page description, etc...)', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('URL/slug translation', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('Language hosting (custom domain like example.fr, example.es)', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('Seamless updates', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('Increased international traffic and AdSense revenue', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('Works in China', 'gtranslate'); ?></li>
-                            <li style="margin:0;"><?php esc_html_e('Priority Live Chat support', 'gtranslate'); ?></li>
-                        </ul>
-
-                        <a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" class="button-primary" rel="noreferrer"><?php esc_html_e('Try Now (15 days free)', 'gtranslate'); ?></a> <a href="https://gtranslate.io/?xyz=998#faq" target="_blank" class="button-primary" rel="noreferrer"><?php esc_html_e('FAQ', 'gtranslate'); ?></a> <a href="https://gtranslate.io/website-translation-quote" target="_blank" class="button-primary" rel="noreferrer"><?php esc_html_e('Website Translation Quote', 'gtranslate'); ?></a> <a href="https://gtranslate.io/?xyz=998#contact" target="_blank" class="button-primary" rel="noreferrer"><?php esc_html_e('Live Chat', 'gtranslate'); ?></a>
-                    </div>
-                </div>
-            </div>
-
-            <div id="poststuff">
-                <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Useful links', 'gtranslate'); ?></h3>
-                    <div class="inside">
-                        <style>
-                        ul.useful_links_list {list-style-type:square;padding-left:20px;margin:0;}
-                        ul.useful_links_list li {margin:0;}
-                        ul.useful_links_list li a {text-decoration:none;}
-                        </style>
-                        <table style="width:100%;" cellpadding="4">
-                            <tr>
-                                <td>
-                                    <ul class="useful_links_list">
-                                        <li><a href="https://translatex.com" target="_blank" rel="noreferrer"><?php esc_html_e('TranslateX - Translation API', 'gtranslate'); ?></a></li>
-                                        <li><a href="https://gtranslate.io/videos" target="_blank" rel="noreferrer"><?php esc_html_e('Videos', 'gtranslate'); ?></a></li>
-                                        <li><a href="https://docs.gtranslate.io/how-tos" target="_blank" rel="noreferrer"><?php esc_html_e('How-tos', 'gtranslate'); ?></a></li>
-                                        <li><a href="https://gtranslate.io/blog" target="_blank" rel="noreferrer"><?php esc_html_e('Blog', 'gtranslate'); ?></a></li>
-                                        <li><a href="https://gtranslate.io/?xyz=998#faq" target="_blank" rel="noreferrer"><?php esc_html_e('FAQ', 'gtranslate'); ?></a></li>
-                                    </ul>
-                                </td>
-                                <td>
-                                    <ul class="useful_links_list">
-                                        <li><a href="https://gtranslate.io/about-us" target="_blank" rel="noreferrer"><?php esc_html_e('About GTranslate team', 'gtranslate'); ?></a></li>
-                                        <li><a href="https://my.gtranslate.io/" target="_blank" rel="noreferrer"><?php esc_html_e('User dashboard', 'gtranslate'); ?></a></li>
-                                        <li><a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" rel="noreferrer"><?php esc_html_e('Compare plans', 'gtranslate'); ?></a></li>
-                                        <li><a href="https://gtranslate.io/website-translation-quote" target="_blank" rel="noreferrer"><?php esc_html_e('Website Translation Quote', 'gtranslate'); ?></a></li>
-                                        <li><a href="https://gtranslate.io/detect-browser-language" target="_blank" rel="noreferrer"><?php esc_html_e('Detect browser language', 'gtranslate'); ?></a></li>
-                                    </ul>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="poststuff">
-                <div class="postbox">
-                    <h3 id="settings"><?php esc_html_e('Live Chat (for paid plans and pre-sales questions)', 'gtranslate'); ?></h3>
-                    <div class="inside">
-                        <p><?php esc_html_e('2am - 6pm (Mon - Fri) UTC-4', 'gtranslate'); ?></p>
-                        <p><?php esc_html_e('We are here to make your experience with GTranslate more convenient.', 'gtranslate'); ?></p>
-                    </div>
-                    <h3 id="settings"><?php esc_html_e('Forum Support (free)', 'gtranslate'); ?></h3>
-                    <div class="inside">
-                        <p><a href="https://wordpress.org/support/plugin/gtranslate/" target="_blank" rel="noreferrer"><?php esc_html_e('WordPress Forum Support', 'gtranslate'); ?></a></p>
-                        <p><?php esc_html_e('We try to help everyone as time permits.', 'gtranslate'); ?></p>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <script><?php echo $script; ?></script>
@@ -1496,21 +1544,20 @@ EOT;
         .gt-icon-spin {animation:gt-icon-spin-animation 2s infinite linear;}
         </style>
 
-        <script>window.intercomSettings = {app_id: "r70azrgx", 'platform': 'wordpress', 'translate_from': '<?php echo $default_language; ?>', 'is_sub_directory': <?php echo (empty($pro_version) ? '0' : '1'); ?>, 'is_sub_domain': <?php echo (empty($enterprise_version) ? '0' : '1'); ?>};(function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',intercomSettings);}else{var d=document;var i=function(){i.c(arguments)};i.q=[];i.c=function(args){i.q.push(args)};w.Intercom=i;function l(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/r70azrgx';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);}if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})()</script>
 
         <?php
     }
 
     public static function control_options() {
-        check_admin_referer('gtranslate-save');
+        check_admin_referer('jaitranslator-save');
 
-        $data = get_option('GTranslate');
+        $data = get_option('JAI_Translator');
         if(!is_array($data))
             self::load_defaults($data);
 
         $data['pro_version'] = isset($_POST['pro_version']) ? intval($_POST['pro_version']) : '';
         $data['enterprise_version'] = isset($_POST['enterprise_version']) ? intval($_POST['enterprise_version']) : '';
-        $data['wrapper_selector'] = isset($_POST['wrapper_selector']) ? sanitize_text_field($_POST['wrapper_selector']) : '.gtranslate_wrapper';
+        $data['wrapper_selector'] = isset($_POST['wrapper_selector']) ? sanitize_text_field($_POST['wrapper_selector']) : '.jaitranslator_wrapper';
         $data['custom_domains'] = isset($_POST['custom_domains']) ? intval($_POST['custom_domains']) : '';
         $data['custom_domains_data'] = isset($_POST['custom_domains_data']) ? sanitize_text_field($_POST['custom_domains_data']) : '';
         $data['url_translation'] = isset($_POST['url_translation']) ? intval($_POST['url_translation']) : '';
@@ -1558,29 +1605,29 @@ EOT;
         $data['language_codes'] = (isset($_POST['language_codes']) and !empty($_POST['language_codes'])) ? sanitize_text_field($_POST['language_codes']) : 'af,sq,ar,hy,az,eu,be,bg,ca,zh-CN,zh-TW,hr,cs,da,nl,en,et,tl,fi,fr,gl,ka,de,el,ht,iw,hi,hu,is,id,ga,it,ja,ko,lv,lt,mk,ms,mt,no,fa,pl,pt,ro,ru,sr,sk,sl,es,sw,sv,th,tr,uk,ur,vi,cy,yi';
         $data['language_codes2'] = (isset($_POST['language_codes2']) and !empty($_POST['language_codes2'])) ? sanitize_text_field($_POST['language_codes2']) : 'af,sq,am,ar,hy,az,eu,be,bn,bs,bg,ca,ceb,ny,zh-CN,zh-TW,co,hr,cs,da,nl,en,eo,et,tl,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,iw,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mk,mg,ms,ml,mt,mi,mr,mn,my,ne,no,ps,fa,pl,pt,pa,ro,ru,sm,gd,sr,st,sn,sd,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu';
 
-        echo '<p style="color:red;">' . __('Changes Saved', 'gtranslate') . '</p>';
-        update_option('GTranslate', $data);
+        echo '<p style="color:red;">' . __('Changes Saved', 'jai-free-translator') . '</p>';
+        update_option('JAI_Translator', $data);
 
-        if($data['pro_version']) { // check if rewrite rules are in place
+        if($data['url_structure'] == 'sub_directory') { // check if rewrite rules are in place
             $htaccess_file = get_home_path() . '.htaccess';
             // todo: use insert_with_markers functions instead
             if(is_writeable($htaccess_file)) {
                 $htaccess = file_get_contents($htaccess_file);
                 if(strpos($htaccess, 'gtranslate.php') === false) { // no config rules
                     $rewrite_rules = file_get_contents(dirname(__FILE__) . '/url_addon/rewrite.txt');
-                    $rewrite_rules = str_replace('GTRANSLATE_PLUGIN_PATH', str_replace(str_replace(array('https:', 'http:'), array(':', ':'), home_url()), '', str_replace(array('https:', 'http:'), array(':', ':'), plugins_url())) . '/gtranslate', $rewrite_rules);
+                    $rewrite_rules = str_replace('JAITRANSLATOR_PLUGIN_PATH', str_replace(str_replace(array('https:', 'http:'), array(':', ':'), home_url()), '', str_replace(array('https:', 'http:'), array(':', ':'), plugins_url())) . '/jai-free-translator', $rewrite_rules);
 
                     $htaccess = $rewrite_rules . "\r\n\r\n" . $htaccess;
                     if(!empty($htaccess)) { // going to update .htaccess
                         file_put_contents($htaccess_file, $htaccess);
-                        echo '<p style="color:red;">' . __('.htaccess file updated', 'gtranslate') . '</p>';
+                        echo '<p style="color:red;">' . __('.htaccess file updated', 'jai-free-translator') . '</p>';
                     }
                 }
             } else {
                 $rewrite_rules = file_get_contents(dirname(__FILE__) . '/url_addon/rewrite.txt');
-                $rewrite_rules = str_replace('GTRANSLATE_PLUGIN_PATH', str_replace(home_url(), '', plugins_url()) . '/gtranslate', $rewrite_rules);
+                $rewrite_rules = str_replace('JAITRANSLATOR_PLUGIN_PATH', str_replace(home_url(), '', plugins_url()) . '/jai-free-translator', $rewrite_rules);
 
-                echo '<p style="color:red;">' . __('Please add the following rules to the top of your .htaccess file', 'gtranslate') . '</p>';
+                echo '<p style="color:red;">' . __('Please add the following rules to the top of your .htaccess file', 'jai-free-translator') . '</p>';
                 echo '<pre style="background-color:#eaeaea;">' . $rewrite_rules . '</pre>';
             }
 
@@ -1591,7 +1638,7 @@ EOT;
                 $config = preg_replace('/\$main_lang = \'[a-z-]{2,5}\'/i', '$main_lang = \''.$data['default_language'].'\'', $config);
                 file_put_contents($config_file, $config);
             } else {
-                echo '<p style="color:red;">' . __('Cannot update gtranslate/url_addon/config.php file. Make sure to update it manually and set correct $main_lang.', 'gtranslate') . '</p>';
+                echo '<p style="color:red;">' . __('Cannot update jai-free-translator/url_addon/config.php file. Make sure to update it manually and set correct $main_lang.', 'jai-free-translator') . '</p>';
             }
 
         } else { // todo: remove rewrite rules
@@ -1664,9 +1711,13 @@ EOT;
             $data = array();
 
         // Removed: pro_version and enterprise_version (this is the free custom version)
+        // Explicitly set to 0 to prevent any paid feature checks
+        $data['pro_version'] = 0;
+        $data['enterprise_version'] = 0;
+
         // Set url_structure to sub_directory for Google Ads landing pages
         $data['url_structure'] = isset($data['url_structure']) ? $data['url_structure'] : 'sub_directory';
-        $data['wrapper_selector'] = isset($data['wrapper_selector']) ? $data['wrapper_selector'] : '.gtranslate_wrapper';
+        $data['wrapper_selector'] = isset($data['wrapper_selector']) ? $data['wrapper_selector'] : '.jaitranslator_wrapper';
         $data['custom_domains'] = isset($data['custom_domains']) ? $data['custom_domains'] : '';
         $data['custom_domains_data'] = isset($data['custom_domains_data']) ? $data['custom_domains_data'] : '';
         $data['url_translation'] = isset($data['url_translation']) ? $data['url_translation'] : '';
@@ -1723,10 +1774,10 @@ EOT;
     }
 }
 
-class GTranslateWidget extends WP_Widget {
+class JAI_Translator_Widget extends WP_Widget {
 
     function __construct() {
-        parent::__construct('gtranslate', esc_html__('GTranslate', 'gtranslate'), array('description' => esc_html__('GTranslate language switcher', 'gtranslate')));
+        parent::__construct('jaitranslator', esc_html__('JAI Translator', 'jai-free-translator'), array('description' => esc_html__('Language translator widget', 'jai-free-translator')));
     }
 
     public function widget($args, $instance) {
@@ -1736,7 +1787,7 @@ class GTranslateWidget extends WP_Widget {
             echo $args['before_title'] . apply_filters('widget_title', $instance['title']) . $args['after_title'];
         }
 
-        echo GTranslate::get_widget_code(array('position' => 'inline', 'wrapper_selector' => '.gtranslate_wrapper'));
+        echo JAI_Translator::get_widget_code(array('position' => 'inline', 'wrapper_selector' => '.jaitranslator_wrapper'));
 
         echo $args['after_widget'];
     }
@@ -1745,7 +1796,7 @@ class GTranslateWidget extends WP_Widget {
         $title = !empty($instance['title']) ? $instance['title'] : '';
         ?>
         <p>
-        <label for="<?php echo esc_attr($this->get_field_id('title')); ?>"><?php esc_attr_e('Title:', 'gtranslate'); ?></label>
+        <label for="<?php echo esc_attr($this->get_field_id('title')); ?>"><?php esc_attr_e('Title:', 'jai-free-translator'); ?></label>
         <input class="widefat" id="<?php echo esc_attr($this->get_field_id('title')); ?>" name="<?php echo esc_attr($this->get_field_name('title')); ?>" type="text" value="<?php echo esc_attr($title); ?>">
         </p>
         <?php
@@ -1760,8 +1811,8 @@ class GTranslateWidget extends WP_Widget {
 
 }
 
-class GTranslate_Notices {
-    protected $prefix = 'gtranslate';
+class JAI_Translator_Notices {
+    protected $prefix = 'jaitranslator';
     public $notice_spam = 0;
     public $notice_spam_max = 3;
 
@@ -1852,14 +1903,14 @@ class GTranslate_Notices {
 
                     // Admin notice display output
                     echo '<div class="update-nag gt-admin-notice">';
-                    echo '<div class="gt-notice-logo"></div>';
-                    echo ' <p class="gt-notice-title">';
+                    echo '<div class="jt-notice-logo"></div>';
+                    echo ' <p class="jt-notice-title">';
                     echo $admin_display_title;
                     echo ' </p>';
-                    echo ' <p class="gt-notice-body">';
+                    echo ' <p class="jt-notice-body">';
                     echo $admin_display_msg;
                     echo ' </p>';
-                    echo '<ul class="gt-notice-body gt-red">
+                    echo '<ul class="jt-notice-body gt-red">
                           ' . $admin_display_link . '
                         </ul>';
                     if($admin_display_dismissible)
@@ -1871,7 +1922,7 @@ class GTranslate_Notices {
                 }
 
                 if ($output_css) {
-                    wp_enqueue_style($this->prefix . '-admin-notices', plugins_url(plugin_basename(dirname(__FILE__))) . '/gtranslate-notices.css', array());
+                    wp_enqueue_style($this->prefix . '-admin-notices', plugins_url(plugin_basename(dirname(__FILE__))) . '/jai-free-translator-notices.css', array());
                 }
             }
 
@@ -1974,9 +2025,9 @@ class GTranslate_Notices {
             if(is_plugin_active($plugin_file)) {
                 $deactivate_link = wp_nonce_url('plugins.php?action=deactivate&amp;plugin='.urlencode($plugin_file ).'&amp;plugin_status=all&amp;paged=1&amp;s=', 'deactivate-plugin_' . $plugin_file);
                 $notices['deactivate_plugin_'.strtolower(str_replace(' ', '', $name))] = array(
-                    'title' => sprintf(esc_html__('Please deactivate %s plugin', 'gtranslate'), $name),
-                    'msg' => sprintf(esc_html__('%s plugin causes conflicts with GTranslate.', 'gtranslate'), $name),
-                    'link' => '<li><span class="dashicons dashicons-dismiss"></span><a href="'.$deactivate_link.'">' . sprintf(esc_html__('Deactivate %s plugin', 'gtranslate'), $name) . '</a></li>',
+                    'title' => sprintf(esc_html__('Please deactivate %s plugin', 'jai-free-translator'), $name),
+                    'msg' => sprintf(esc_html__('%s plugin causes conflicts with JAITranslate.', 'jai-free-translator'), $name),
+                    'link' => '<li><span class="dashicons dashicons-dismiss"></span><a href="'.$deactivate_link.'">' . sprintf(esc_html__('Deactivate %s plugin', 'jai-free-translator'), $name) . '</a></li>',
                     'dismissible' => false,
                     'int' => 0
                 );
@@ -1987,11 +2038,11 @@ class GTranslate_Notices {
         $one_week_support = esc_url(add_query_arg(array($this->prefix . '_admin_notice_ignore' => 'one_week_support')));
 
         $notices['one_week_support'] = array(
-          'title' => esc_html__('Hey! How is it going?', 'gtranslate'),
-          'msg' => esc_html__('Thank you for using GTranslate! We hope that you have found everything you need, but if you have any questions you can use our Live Chat or Forum:', 'gtranslate'),
-          'link' => '<li><span class="dashicons dashicons-admin-comments"></span><a target="_blank" href="https://gtranslate.io/#contact" rel="noreferrer">' . esc_html__('Get help', 'gtranslate') . '</a></li>' .
-                    '<li><span class="dashicons dashicons-format-video"></span><a target="_blank" href="https://gtranslate.io/videos" rel="noreferrer">'.esc_html__('Check videos', 'gtranslate') . '</a></li>' .
-                    '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $one_week_support . '">' . esc_html__('Never show again', 'gtranslate') . '</a></li>',
+          'title' => esc_html__('Hey! How is it going?', 'jai-free-translator'),
+          'msg' => esc_html__('Thank you for using JAITranslate! We hope that you have found everything you need, but if you have any questions you can use our Live Chat or Forum:', 'jai-free-translator'),
+          'link' => '<li><span class="dashicons dashicons-admin-comments"></span><a target="_blank" href="https://jai-free-translator.io/#contact" rel="noreferrer">' . esc_html__('Get help', 'jai-free-translator') . '</a></li>' .
+                    '<li><span class="dashicons dashicons-format-video"></span><a target="_blank" href="https://jai-free-translator.io/videos" rel="noreferrer">'.esc_html__('Check videos', 'jai-free-translator') . '</a></li>' .
+                    '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $one_week_support . '">' . esc_html__('Never show again', 'jai-free-translator') . '</a></li>',
           'int' => 1
         );
         */
@@ -2000,28 +2051,28 @@ class GTranslate_Notices {
         $two_week_review_temp = esc_url(add_query_arg(array($this->prefix . '_admin_notice_temp_ignore' => 'two_week_review', 'gt_int' => 6)));
 
         $notices['two_week_review'] = array(
-            'title' => esc_html__('Please Leave a Review', 'gtranslate'),
-            'msg' => sprintf(esc_html__('We hope you have enjoyed using GTranslate! Would you mind taking a few minutes to write a review on WordPress.org? %1$sJust writing a simple %2$s\'thank you\'%3$s will make us happy!', 'gtranslate'), '<br>', '<b>', '</b>'),
-            'link' => '<li><span class="dashicons dashicons-external"></span><a href="https://wordpress.org/support/plugin/gtranslate/reviews/?filter=5" target="_blank" rel="noreferrer">' . esc_html__('Sure! I would love to!', 'gtranslate') . '</a></li>' .
-                      '<li><span class="dashicons dashicons-smiley"></span><a href="' . $two_week_review_ignore . '">' . esc_html__('I have already left a review', 'gtranslate') . '</a></li>' .
-                      '<li><span class="dashicons dashicons-calendar-alt"></span><a href="' . $two_week_review_temp . '">' . esc_html__('Maybe later', 'gtranslate') . '</a></li>' .
-                      '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $two_week_review_ignore . '">' . esc_html__('Never show again', 'gtranslate') . '</a></li>',
+            'title' => esc_html__('Please Leave a Review', 'jai-free-translator'),
+            'msg' => sprintf(esc_html__('We hope you have enjoyed using JAITranslate! Would you mind taking a few minutes to write a review on WordPress.org? %1$sJust writing a simple %2$s\'thank you\'%3$s will make us happy!', 'jai-free-translator'), '<br>', '<b>', '</b>'),
+            'link' => '<li><span class="dashicons dashicons-external"></span><a href="https://wordpress.org/support/plugin/jai-free-translator/reviews/?filter=5" target="_blank" rel="noreferrer">' . esc_html__('Sure! I would love to!', 'jai-free-translator') . '</a></li>' .
+                      '<li><span class="dashicons dashicons-smiley"></span><a href="' . $two_week_review_ignore . '">' . esc_html__('I have already left a review', 'jai-free-translator') . '</a></li>' .
+                      '<li><span class="dashicons dashicons-calendar-alt"></span><a href="' . $two_week_review_temp . '">' . esc_html__('Maybe later', 'jai-free-translator') . '</a></li>' .
+                      '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $two_week_review_ignore . '">' . esc_html__('Never show again', 'jai-free-translator') . '</a></li>',
             'later_link' => $two_week_review_temp,
             'int' => 5
         );
 
-        $data = get_option('GTranslate');
-        GTranslate::load_defaults($data);
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
 
         // check if email debug is on and add a notice
         if($data['email_translation_debug']) {
-            $settings_link = admin_url('options-general.php?page=gtranslate_options');
-            $view_debug_link = admin_url('plugin-editor.php?file=gtranslate%2Furl_addon%2Fdebug.txt&plugin=gtranslate%2Fgtranslate.php');
+            $settings_link = admin_url('options-general.php?page=jaitranslator_options');
+            $view_debug_link = admin_url('plugin-editor.php?file=jai-free-translator%2Furl_addon%2Fdebug.txt&plugin=jai-free-translator%2Fgtranslate.php');
             $notices['gt_debug_notice'] = array(
-                'title' => esc_html__('Email translation debug mode is ON.', 'gtranslate'),
-                'msg' => esc_html__('Please note that sensitive information can be written into gtranslate/url_addon/debug.txt file, which can be accessed publicly. It is your responsibility to deny public access to it and clean debug information after you are done.', 'gtranslate'),
-                'link' => '<li><span class="dashicons dashicons-admin-settings"></span><a href="'.$settings_link.'">' . esc_html__('GTranslate Settings', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-visibility"></span><a href="'.$view_debug_link.'">' . esc_html__('View debug.txt', 'gtranslate') . '</a></li>',
+                'title' => esc_html__('Email translation debug mode is ON.', 'jai-free-translator'),
+                'msg' => esc_html__('Please note that sensitive information can be written into gtranslate/url_addon/debug.txt file, which can be accessed publicly. It is your responsibility to deny public access to it and clean debug information after you are done.', 'jai-free-translator'),
+                'link' => '<li><span class="dashicons dashicons-admin-settings"></span><a href="'.$settings_link.'">' . esc_html__('JAI Translator Settings', 'jai-free-translator') . '</a></li>' .
+                          '<li><span class="dashicons dashicons-visibility"></span><a href="'.$view_debug_link.'">' . esc_html__('View debug.txt', 'jai-free-translator') . '</a></li>',
                 'dismissible' => false,
                 'int' => 0
             );
@@ -2030,75 +2081,19 @@ class GTranslate_Notices {
         // check if translation debug is on and add a notice
         include dirname(__FILE__) . '/url_addon/config.php';
         if($debug) {
-            $edit_file_link = admin_url('plugin-editor.php?file=gtranslate%2Furl_addon%2Fconfig.php&plugin=gtranslate%2Fgtranslate.php');
-            $view_debug_link = admin_url('plugin-editor.php?file=gtranslate%2Furl_addon%2Fdebug.txt&plugin=gtranslate%2Fgtranslate.php');
+            $edit_file_link = admin_url('plugin-editor.php?file=jai-free-translator%2Furl_addon%2Fconfig.php&plugin=jai-free-translator%2Fgtranslate.php');
+            $view_debug_link = admin_url('plugin-editor.php?file=jai-free-translator%2Furl_addon%2Fdebug.txt&plugin=jai-free-translator%2Fgtranslate.php');
             $notices['gt_debug_notice'] = array(
-                'title' => esc_html__('Translation debug mode is ON.', 'gtranslate'),
-                'msg' => esc_html__('Please note that sensitive information can be written into gtranslate/url_addon/debug.txt file, which can be accessed publicly. It is your responsibility to deny public access to it and clean debug information after you are done.', 'gtranslate'),
-                'link' => '<li><span class="dashicons dashicons-edit"></span><a href="'.$edit_file_link.'">' . esc_html__('Edit config.php', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-visibility"></span><a href="'.$view_debug_link.'">' . esc_html__('View debug.txt', 'gtranslate') . '</a></li>',
+                'title' => esc_html__('Translation debug mode is ON.', 'jai-free-translator'),
+                'msg' => esc_html__('Please note that sensitive information can be written into gtranslate/url_addon/debug.txt file, which can be accessed publicly. It is your responsibility to deny public access to it and clean debug information after you are done.', 'jai-free-translator'),
+                'link' => '<li><span class="dashicons dashicons-edit"></span><a href="'.$edit_file_link.'">' . esc_html__('Edit config.php', 'jai-free-translator') . '</a></li>' .
+                          '<li><span class="dashicons dashicons-visibility"></span><a href="'.$view_debug_link.'">' . esc_html__('View debug.txt', 'jai-free-translator') . '</a></li>',
                 'dismissible' => false,
                 'int' => 0
             );
         }
 
-        $upgrade_tips_ignore = esc_url(add_query_arg(array($this->prefix . '_admin_notice_ignore' => 'upgrade_tips')));
-        $upgrade_tips_temp = esc_url(add_query_arg(array($this->prefix . '_admin_notice_temp_ignore' => 'upgrade_tips', 'gt_int' => 7)));
-
-        if($data['pro_version'] != '1' and $data['enterprise_version'] != '1') {
-            $notices['upgrade_tips'][] = array(
-                'title' => esc_html__('Did you know?', 'gtranslate'),
-                'msg' => sprintf(esc_html__('You can have %1$sneural machine translations%2$s which are human level by upgrading your GTranslate.', 'gtranslate'), '<b>', '</b>'),
-                'link' => '<li><span class="dashicons dashicons-external"></span><a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" rel="noreferrer">' . esc_html__('Learn more', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-calendar-alt"></span><a href="' . $upgrade_tips_temp . '">' . esc_html__('Maybe later', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $upgrade_tips_ignore . '">' . esc_html__('Never show again', 'gtranslate') . '</a></li>',
-                'later_link' => $upgrade_tips_temp,
-                'int' => 2
-            );
-
-            $notices['upgrade_tips'][] = array(
-                'title' => esc_html__('Did you know?', 'gtranslate'),
-                'msg' => sprintf(esc_html__('You can %1$sincrease%2$s your international %1$straffic%2$s by upgrading your GTranslate.', 'gtranslate'), '<b>', '</b>'),
-                'link' => '<li><span class="dashicons dashicons-external"></span><a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" rel="noreferrer">' . esc_html__('Learn more', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-calendar-alt"></span><a href="' . $upgrade_tips_temp . '">' . esc_html__('Maybe later', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $upgrade_tips_ignore . '">' . esc_html__('Never show again', 'gtranslate') . '</a></li>',
-                'later_link' => $upgrade_tips_temp,
-                'int' => 2
-            );
-
-            $notices['upgrade_tips'][] = array(
-                'title' => esc_html__('Did you know?', 'gtranslate'),
-                'msg' => sprintf(esc_html__('You can have your %1$stranslated pages indexed%2$s in search engines by upgrading your GTranslate.', 'gtranslate'), '<b>', '</b>'),
-                'link' => '<li><span class="dashicons dashicons-external"></span><a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" rel="noreferrer">' . esc_html__('Learn more', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-calendar-alt"></span><a href="' . $upgrade_tips_temp . '">' . esc_html__('Maybe later', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $upgrade_tips_ignore . '">' . esc_html__('Never show again', 'gtranslate') . '</a></li>',
-                'later_link' => $upgrade_tips_temp,
-                'int' => 2
-            );
-
-            $notices['upgrade_tips'][] = array(
-                'title' => esc_html__('Did you know?', 'gtranslate'),
-                'msg' => sprintf(esc_html__('You can %1$sincrease%2$s your %1$sAdSense revenue%2$s by upgrading your GTranslate.', 'gtranslate'), '<b>', '</b>'),
-                'link' => '<li><span class="dashicons dashicons-external"></span><a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" rel="noreferrer">' . esc_html__('Learn more', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-calendar-alt"></span><a href="' . $upgrade_tips_temp . '">' . esc_html__('Maybe later', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $upgrade_tips_ignore . '">' . esc_html__('Never show again', 'gtranslate') . '</a></li>',
-                'later_link' => $upgrade_tips_temp,
-                'int' => 2
-            );
-
-            $notices['upgrade_tips'][] = array(
-                'title' => esc_html__('Did you know?', 'gtranslate'),
-                'msg' => sprintf(esc_html__('You can %1$sedit translations%2$s by upgrading your GTranslate.', 'gtranslate'), '<b>', '</b>'),
-                'link' => '<li><span class="dashicons dashicons-external"></span><a href="https://gtranslate.io/?xyz=998#pricing" target="_blank" rel="noreferrer">' . esc_html__('Learn more', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-calendar-alt"></span><a href="' . $upgrade_tips_temp . '">' . esc_html__('Maybe later', 'gtranslate') . '</a></li>' .
-                          '<li><span class="dashicons dashicons-dismiss"></span><a href="' . $upgrade_tips_ignore . '">' . esc_html__('Never show again', 'gtranslate') . '</a></li>',
-                'later_link' => $upgrade_tips_temp,
-                'int' => 2
-            );
-
-            shuffle($notices['upgrade_tips']);
-            $notices['upgrade_tips'] = $notices['upgrade_tips'][0];
-        }
+        // Upgrade tips removed - this is a free version
 
         $this->admin_notice($notices);
     }
@@ -2107,65 +2102,34 @@ class GTranslate_Notices {
 
 if(is_admin()) {
     if(!defined('DOING_AJAX') or !DOING_AJAX)
-        new GTranslate_Notices();
+        new JAI_Translator_Notices();
 }
 
-$data = get_option('GTranslate');
-GTranslate::load_defaults($data);
+$data = get_option('JAI_Translator');
+JAI_Translator::load_defaults($data);
 
-if($data['pro_version']) { // gtranslate redirect rules with PHP (for environments with no .htaccess support (pantheon, flywheel, etc.), usually .htaccess rules override this)
-
-    $url_params = explode('?', $_SERVER['REQUEST_URI']);
-    $request_uri = $url_params[0];
-    if(isset($url_params[1]))
-        $query_params = $url_params[1];
-    else
-        $query_params = '';
-
-    if(preg_match('/^\/(af|sq|am|ar|hy|az|eu|be|bn|bs|bg|ca|ceb|ny|zh-CN|zh-TW|co|hr|cs|da|nl|en|eo|et|tl|fi|fr|fy|gl|ka|de|el|gu|ht|ha|haw|iw|hi|hmn|hu|is|ig|id|ga|it|ja|jw|kn|kk|km|ko|ku|ky|lo|la|lv|lt|lb|mk|mg|ms|ml|mt|mi|mr|mn|my|ne|no|ps|fa|pl|pt|pa|ro|ru|sm|gd|sr|st|sn|sd|si|sk|sl|so|es|su|sw|sv|tg|ta|te|th|tr|uk|ur|uz|vi|cy|xh|yi|yo|zu)\/(af|sq|am|ar|hy|az|eu|be|bn|bs|bg|ca|ceb|ny|zh-CN|zh-TW|co|hr|cs|da|nl|en|eo|et|tl|fi|fr|fy|gl|ka|de|el|gu|ht|ha|haw|iw|hi|hmn|hu|is|ig|id|ga|it|ja|jw|kn|kk|km|ko|ku|ky|lo|la|lv|lt|lb|mk|mg|ms|ml|mt|mi|mr|mn|my|ne|no|ps|fa|pl|pt|pa|ro|ru|sm|gd|sr|st|sn|sd|si|sk|sl|so|es|su|sw|sv|tg|ta|te|th|tr|uk|ur|uz|vi|cy|xh|yi|yo|zu)\/(.*)$/', $request_uri, $matches)) {
-        header('Location: ' . '/' . $matches[1] . '/' . $matches[3] . (empty($query_params) ? '' : '?'.$query_params), true, 301);
-        exit;
-    } // #1 redirect double language codes /es/en/...
-
-    if(preg_match('/^\/(af|sq|am|ar|hy|az|eu|be|bn|bs|bg|ca|ceb|ny|zh-CN|zh-TW|co|hr|cs|da|nl|en|eo|et|tl|fi|fr|fy|gl|ka|de|el|gu|ht|ha|haw|iw|hi|hmn|hu|is|ig|id|ga|it|ja|jw|kn|kk|km|ko|ku|ky|lo|la|lv|lt|lb|mk|mg|ms|ml|mt|mi|mr|mn|my|ne|no|ps|fa|pl|pt|pa|ro|ru|sm|gd|sr|st|sn|sd|si|sk|sl|so|es|su|sw|sv|tg|ta|te|th|tr|uk|ur|uz|vi|cy|xh|yi|yo|zu)$/', $request_uri)) {
-        header('Location: ' . $request_uri . '/' . (empty($query_params) ? '' : '?'.$query_params), true, 301);
-        exit;
-    } // #2 add trailing slash
-
-    if($data['widget_look'] == 'float' or $data['widget_look'] == 'flags' or $data['widget_look'] == 'float' or $data['widget_look'] == 'dropdown_with_flags' or $data['widget_look'] == 'flags_name' or $data['widget_look'] == 'flags_code' or $data['widget_look'] == 'popup')
-        $allowed_languages = $data['fincl_langs'];
-    elseif($data['widget_look'] == 'flags_dropdown')
-        $allowed_languages = array_values(array_unique(array_merge($data['fincl_langs'], $data['incl_langs'])));
-    else
-        $allowed_languages = $data['incl_langs'];
-    $allowed_languages = implode('|', $allowed_languages); // ex: en|ru|it|de
-    if(preg_match('/^\/('.$allowed_languages.')\/(.*)/', $request_uri, $matches)) {
-        $_GET['glang'] = $matches[1];
-        $_GET['gurl'] = rawurldecode($matches[2]);
-
-        require_once dirname(__FILE__) . '/url_addon/gtranslate.php';
-        exit;
-    } // #3 proxy translation
-}
+// Old redirect-based sub-directory handling removed
+// Now handled by WordPress request filter in add_rewrite_rules() method
+// which serves content directly at /es/ URLs without redirecting
 
 if(!empty($data['show_in_menu'])) {
-    function gtranslate_menu_item($items, $args) {
-        $data = get_option('GTranslate');
-        GTranslate::load_defaults($data);
+    function jaitranslator_menu_item($items, $args) {
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
 
         if($args->theme_location == $data['show_in_menu']) {
             if($data['widget_look'] == 'dropdown_with_flags' or $data['widget_look'] == 'float') {
                 $unique_wrapper_id = wp_rand(10000, 88888);
-                $items .= '<li style="position:relative;" class="menu-item menu-item-gtranslate">';
-                $items .= '<div style="position:absolute;white-space:nowrap;" id="gtranslate_menu_wrapper_' . $unique_wrapper_id . '">';
-                $items .= GTranslate::get_widget_code(array('wrapper_selector' => '#gtranslate_menu_wrapper_' . $unique_wrapper_id, 'position' => 'inline'));
+                $items .= '<li style="position:relative;" class="menu-item menu-item-jaitranslator">';
+                $items .= '<div style="position:absolute;white-space:nowrap;" id="jaitranslator_menu_wrapper_' . $unique_wrapper_id . '">';
+                $items .= JAI_Translator::get_widget_code(array('wrapper_selector' => '#jaitranslator_menu_wrapper_' . $unique_wrapper_id, 'position' => 'inline'));
                 $items .= '</div>';
                 $items .= '</li>';
             } elseif($data['widget_look'] == 'flags' or $data['widget_look'] == 'flags_code' or $data['widget_look'] == 'flags_name' or $data['widget_look'] == 'lang_codes' or $data['widget_look'] == 'lang_names') {
-                $lang_array = $data['native_language_names'] ? json_decode(GTranslate::$lang_array_native_json, true) : GTranslate::$lang_array;
+                $lang_array = $data['native_language_names'] ? json_decode(JAI_Translator::$lang_array_native_json, true) : JAI_Translator::$lang_array;
 
-                $items .= '<li class="menu-item menu-item-gtranslate menu-item-has-children notranslate">';
-                $items .= GTranslate::render_single_item(array('lang' => $data['default_language'], 'widget_look' => $data['widget_look'], 'label' => $lang_array[$data['default_language']], 'current_wrapper' => 1));
+                $items .= '<li class="menu-item menu-item-jaitranslator menu-item-has-children notranslate">';
+                $items .= JAI_Translator::render_single_item(array('lang' => $data['default_language'], 'widget_look' => $data['widget_look'], 'label' => $lang_array[$data['default_language']], 'current_wrapper' => 1));
 
                 if($data['widget_look'] == 'lang_names' or $data['widget_look'] == 'lang_codes')
                     $languages = $data['incl_langs'];
@@ -2174,17 +2138,17 @@ if(!empty($data['show_in_menu'])) {
 
                 $items .= '<ul class="dropdown-menu sub-menu">';
                 foreach($languages as $lang) {
-                    $items .= '<li class="menu-item menu-item-gtranslate-child">';
-                    $items .= GTranslate::render_single_item(array('lang' => $lang, 'widget_look' => $data['widget_look'], 'label' => $lang_array[$lang]));
+                    $items .= '<li class="menu-item menu-item-jaitranslator-child">';
+                    $items .= JAI_Translator::render_single_item(array('lang' => $lang, 'widget_look' => $data['widget_look'], 'label' => $lang_array[$lang]));
                     $items .= '</li>';
                 }
                 $items .= '</ul>';
 
                 $items .= '</li>';
             } else {
-                $unique_menu_class = 'gt-menu-' . wp_rand(10000, 88888);
-                $items .= '<li style="position:relative;" class="menu-item menu-item-gtranslate ' . $unique_menu_class . '">';
-                $items .= GTranslate::get_widget_code(array('wrapper_selector' => 'li.menu-item-gtranslate.' . $unique_menu_class, 'position' => 'inline'));
+                $unique_menu_class = 'jt-menu-' . wp_rand(10000, 88888);
+                $items .= '<li style="position:relative;" class="menu-item menu-item-jaitranslator ' . $unique_menu_class . '">';
+                $items .= JAI_Translator::get_widget_code(array('wrapper_selector' => 'li.menu-item-jaitranslator.' . $unique_menu_class, 'position' => 'inline'));
                 $items .= '</li>';
             }
         }
@@ -2192,41 +2156,41 @@ if(!empty($data['show_in_menu'])) {
         return $items;
     }
 
-    add_filter('wp_nav_menu_items', 'gtranslate_menu_item', 10, 2);
+    add_filter('wp_nav_menu_items', 'jaitranslator_menu_item', 10, 2);
 }
 
 if($data['floating_language_selector'] != 'no' and !is_admin()) {
-    function gtranslate_display_floating() {
-        echo GTranslate::get_widget_code(false);
+    function jaitranslator_display_floating() {
+        echo JAI_Translator::get_widget_code(false);
     }
 
-    add_action('wp_footer', 'gtranslate_display_floating');
+    add_action('wp_footer', 'jaitranslator_display_floating');
 }
 
-if($data['wrapper_selector'] != '.gtranslate_wrapper' and !empty(trim($data['wrapper_selector']))) {
-    function gtranslate_add_inline_selector() {
-        echo GTranslate::get_widget_code(array('position' => 'inline'));
+if($data['wrapper_selector'] != '.jaitranslator_wrapper' and !empty(trim($data['wrapper_selector']))) {
+    function jaitranslator_add_inline_selector() {
+        echo JAI_Translator::get_widget_code(array('position' => 'inline'));
     }
 
-    add_action('wp_footer', 'gtranslate_add_inline_selector');
+    add_action('wp_footer', 'jaitranslator_add_inline_selector');
 }
 
-if($data['url_translation'] and ($data['pro_version'] or $data['enterprise_version'])) {
-    function gtranslate_url_translation_meta() {
+if($data['url_translation'] and $data['url_structure'] == 'sub_directory') {
+    function jaitranslator_url_translation_meta() {
         echo '<meta name="uri-translation" content="on" />';
     }
 
-    add_action('wp_head', 'gtranslate_url_translation_meta', 1);
+    add_action('wp_head', 'jaitranslator_url_translation_meta', 1);
 }
 
-if($data['add_hreflang_tags'] and ($data['pro_version'] or $data['enterprise_version'])) {
-    function gtranslate_add_hreflang_tags() {
+if($data['add_hreflang_tags'] and $data['url_structure'] == 'sub_directory') {
+    function jaitranslator_add_hreflang_tags() {
         $url_fragments = parse_url(home_url());
         if(!isset($url_fragments['scheme']) or !isset($url_fragments['host']))
             return;
 
-        $data = get_option('GTranslate');
-        GTranslate::load_defaults($data);
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
 
         $enabled_languages = array();
         if($data['widget_look'] == 'flags' or $data['widget_look'] == 'float' or $data['widget_look'] == 'dropdown_with_flags' or $data['widget_look'] == 'flags_name' or $data['widget_look'] == 'flags_code' or $data['widget_look'] == 'popup')
@@ -2252,16 +2216,7 @@ if($data['add_hreflang_tags'] and ($data['pro_version'] or $data['enterprise_ver
             $href = '';
             $domain = str_replace('www.', '', $_SERVER['HTTP_HOST']);
 
-            if($data['enterprise_version']) {
-                if($data['custom_domains'] and !empty($data['custom_domains_data'])) {
-                    $custom_domains_data = json_decode(stripslashes($data['custom_domains_data']), true);
-                    if(isset($custom_domains_data[$lang]))
-                        $href = str_ireplace('://' . $_SERVER['HTTP_HOST'], '://' . $custom_domains_data[$lang], $current_url);
-                    else
-                        $href = str_ireplace('://' . $_SERVER['HTTP_HOST'], '://' . $lang . '.' . $domain, $current_url);
-                } else
-                    $href = str_ireplace('://' . $_SERVER['HTTP_HOST'], '://' . $lang . '.' . $domain, $current_url);
-            } elseif($data['pro_version'])
+            if($data['url_structure'] == 'sub_directory')
                 $href = str_ireplace('://' . $_SERVER['HTTP_HOST'], '://' . $_SERVER['HTTP_HOST'] . '/' . $lang, $current_url);
 
             if(!empty($href) and $lang != $data['default_language']) {
@@ -2275,12 +2230,12 @@ if($data['add_hreflang_tags'] and ($data['pro_version'] or $data['enterprise_ver
         }
     }
 
-    add_action('wp_head', 'gtranslate_add_hreflang_tags', 1);
+    add_action('wp_head', 'jaitranslator_add_hreflang_tags', 1);
 }
 
 // translate WP REST API posts and categories data in JSON response
-if($data['pro_version'] or $data['enterprise_version']) {
-    function gtranslate_rest_post($response, $post, $request) {
+if($data['url_structure'] == 'sub_directory') {
+    function jaitranslator_rest_post($response, $post, $request) {
         if(isset($response->data['content']) and is_array($response->data['content']))
             $response->data['content']['gt_translate_keys'] = array(array('key' => 'rendered', 'format' => 'html'));
 
@@ -2298,7 +2253,7 @@ if($data['pro_version'] or $data['enterprise_version']) {
         return $response;
     }
 
-    function gtranslate_rest_category($response, $category, $request) {
+    function jaitranslator_rest_category($response, $category, $request) {
         if(isset($response->data['description']))
             $response->data['gt_translate_keys'][] = array('key' => 'description', 'format' => 'html');
 
@@ -2313,12 +2268,12 @@ if($data['pro_version'] or $data['enterprise_version']) {
         return $response;
     }
 
-    add_filter('rest_prepare_post', 'gtranslate_rest_post', 10, 3);
-    add_filter('rest_prepare_category', 'gtranslate_rest_category', 10, 3);
+    add_filter('rest_prepare_post', 'jaitranslator_rest_post', 10, 3);
+    add_filter('rest_prepare_category', 'jaitranslator_rest_category', 10, 3);
 }
 
 // auto redirect to browser language
-if(($data['pro_version'] or $data['enterprise_version']) and $data['detect_browser_language'] and parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) == parse_url(site_url(), PHP_URL_PATH) . '/' and isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) and isset($_SERVER['HTTP_USER_AGENT']) and !isset($_SERVER['HTTP_X_GT_LANG']) and preg_match('/bot|spider|slurp|facebook/i', $_SERVER['HTTP_USER_AGENT']) == 0) {
+if($data['url_structure'] == 'sub_directory' and $data['detect_browser_language'] and parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) == parse_url(site_url(), PHP_URL_PATH) . '/' and isset($_SERVER['HTTP_ACCEPT_LANGUAGE']) and isset($_SERVER['HTTP_USER_AGENT']) and !isset($_SERVER['HTTP_X_GT_LANG']) and preg_match('/bot|spider|slurp|facebook/i', $_SERVER['HTTP_USER_AGENT']) == 0) {
     if($data['widget_look'] == 'flags' or $data['widget_look'] == 'float' or $data['widget_look'] == 'dropdown_with_flags' or $data['widget_look'] == 'flags_name' or $data['widget_look'] == 'flags_code' or $data['widget_look'] == 'popup')
         $allowed_languages = $data['fincl_langs'];
     elseif($data['widget_look'] == 'flags_dropdown')
@@ -2341,20 +2296,8 @@ if(($data['pro_version'] or $data['enterprise_version']) and $data['detect_brows
         // set cookie for 30 days and redirect
         setcookie('gt_auto_switch', 1, time() + 2592000);
 
-        if($data['pro_version'])
+        if($data['url_structure'] == 'sub_directory')
             header('Location: ' . home_url() . '/' . $accept_language . '/');
-
-        if($data['enterprise_version'] and isset($_SERVER['HTTP_HOST'])) {
-            if($data['custom_domains'] and !empty($data['custom_domains_data'])) {
-                $custom_domains_data = json_decode(stripslashes($data['custom_domains_data']), true);
-                if(isset($custom_domains_data[$accept_language]))
-                    $href = str_ireplace('://' . $_SERVER['HTTP_HOST'], '://' . $custom_domains_data[$accept_language], site_url());
-                else
-                    $href = str_ireplace('://' . $_SERVER['HTTP_HOST'], '://' . $accept_language . '.' . preg_replace('/^www\./', '', $_SERVER['HTTP_HOST']), site_url());
-            } else
-                $href = str_ireplace('://' . $_SERVER['HTTP_HOST'], '://' . $accept_language . '.' . preg_replace('/^www\./', '', $_SERVER['HTTP_HOST']), site_url());
-            header('Location: ' . $href);
-        }
 
         header('Vary: Accept-Language');
 
@@ -2362,7 +2305,7 @@ if(($data['pro_version'] or $data['enterprise_version']) and $data['detect_brows
     }
 }
 
-if($data['pro_version'] or $data['enterprise_version']) {
+if($data['url_structure'] == 'sub_directory') {
     // filter for woocommerce script params
     function gt_filter_woocommerce_scripts_data($data, $handle) {
         switch($handle) {
@@ -2474,8 +2417,8 @@ if($data['pro_version'] or $data['enterprise_version']) {
 
                 // translate woocommerce
                 if(strpos($message, 'woocommerce') !== false) {
-                    $data = get_option('GTranslate');
-                    GTranslate::load_defaults($data);
+                    $data = get_option('JAI_Translator');
+                    JAI_Translator::load_defaults($data);
 
                     include dirname(__FILE__) . '/url_addon/config.php';
                     $server_id = intval(substr(md5(preg_replace('/^www\./', '', $_SERVER['HTTP_HOST'])), 0, 5), 16) % count($servers);
@@ -2501,14 +2444,14 @@ if($data['pro_version'] or $data['enterprise_version']) {
                         $viewer_ip_address = $_SERVER['REMOTE_ADDR'];
 
                     $headers[] = 'X-GT-Viewer-IP: ' . $viewer_ip_address;
-                    $headers[] = 'User-Agent: GTranslate-Email-Translate';
+                    $headers[] = 'User-Agent: JAI-Translator-Email';
 
                     // add X-Forwarded-For
                     if(isset($_SERVER['HTTP_X_FORWARDED_FOR']) and !empty($_SERVER['HTTP_X_FORWARDED_FOR']))
                         $headers[] = 'X-GT-Forwarded-For: ' . $_SERVER['HTTP_X_FORWARDED_FOR'];
 
                     $ch = curl_init();
-                    curl_setopt($ch, CURLOPT_URL, $protocol.'://'.$server.'.tdn.gtranslate.net'.wp_make_link_relative(plugins_url('gtranslate/url_addon/gtranslate-email.php').'?glang='.$_SERVER['HTTP_X_GT_LANG']));
+                    curl_setopt($ch, CURLOPT_URL, $protocol.'://'.$server.'.tdn.gtranslate.net'.wp_make_link_relative(plugins_url('jai-free-translator/url_addon/jai-free-translator-email.php').'?glang='.$_SERVER['HTTP_X_GT_LANG']));
                     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
@@ -2570,8 +2513,8 @@ if($data['pro_version'] or $data['enterprise_version']) {
         // woocommerce pdf invoice translation
         function gt_translate_invoice_pdf($html) {
             if(function_exists('curl_init') and isset($_SERVER['HTTP_X_GT_LANG'])) {
-                $data = get_option('GTranslate');
-                GTranslate::load_defaults($data);
+                $data = get_option('JAI_Translator');
+                JAI_Translator::load_defaults($data);
 
                 // add notranslate for addresses
                 $html = str_replace('-address"', '-address notranslate"', $html);
@@ -2600,14 +2543,14 @@ if($data['pro_version'] or $data['enterprise_version']) {
                     $viewer_ip_address = $_SERVER['REMOTE_ADDR'];
 
                 $headers[] = 'X-GT-Viewer-IP: ' . $viewer_ip_address;
-                $headers[] = 'User-Agent: GTranslate-Email-Translate';
+                $headers[] = 'User-Agent: JAI-Translator-Email';
 
                 // add X-Forwarded-For
                 if(isset($_SERVER['HTTP_X_FORWARDED_FOR']) and !empty($_SERVER['HTTP_X_FORWARDED_FOR']))
                     $headers[] = 'X-GT-Forwarded-For: ' . $_SERVER['HTTP_X_FORWARDED_FOR'];
 
                 $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $protocol.'://'.$server.'.tdn.gtranslate.net'.wp_make_link_relative(plugins_url('gtranslate/url_addon/gtranslate-email.php').'?format=pdf_html&glang='.$_SERVER['HTTP_X_GT_LANG']));
+                curl_setopt($ch, CURLOPT_URL, $protocol.'://'.$server.'.tdn.gtranslate.net'.wp_make_link_relative(plugins_url('jai-free-translator/url_addon/jai-free-translator-email.php').'?format=pdf_html&glang='.$_SERVER['HTTP_X_GT_LANG']));
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
@@ -2683,8 +2626,8 @@ if($data['pro_version'] or $data['enterprise_version']) {
 if($data['enterprise_version']) {
     // solve wp_get_referer issue
     function gt_allowed_redirect_hosts($hosts) {
-        $data = get_option('GTranslate');
-        GTranslate::load_defaults($data);
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
 
         if($data['custom_domains'] and !empty($data['custom_domains_data'])) {
             $custom_domains_data = json_decode(stripslashes($data['custom_domains_data']), true);
@@ -2714,9 +2657,9 @@ add_filter('autoptimize_filter_js_exclude', 'ao_cache_exclude_js_gtranslate', 10
 // exclude javascript minification by cache plugins
 function cache_exclude_js_gtranslate($excluded_js) {
     if(is_array($excluded_js) or empty($excluded_js)) {
-        $excluded_js[] = '/gtranslate/js/.+\.js';
-        $excluded_js[] = 'cdn.gtranslate.net';
-        $excluded_js[] = 'gtranslate';
+        $excluded_js[] = '/jai-free-translator/js/.+\.js';
+        $excluded_js[] = '/jai-free-translator/js/.+\.js';
+        $excluded_js[] = 'jaitranslator';
     }
 
     return $excluded_js;
@@ -2733,17 +2676,17 @@ add_filter('rocket_minify_excluded_external_js', 'cache_exclude_js_gtranslate');
 // WP Rocket inline script exclusions
 function rocket_exclude_inline_gt_scripts($excluded_patterns) {
     if(is_array($excluded_patterns)) {
-        $excluded_patterns[] = 'gtranslate';
+        $excluded_patterns[] = 'jaitranslator';
         return $excluded_patterns;
     }
 
-    return array('gtranslate');
+    return array('jaitranslator');
 }
 add_filter('rocket_defer_inline_exclusions', 'rocket_exclude_inline_gt_scripts', 1000, 1);
 
 // W3 Total Cache
 function w3tc_cache_exclude_js_gtranslate($do_tag_minification, $script_tag, $file) {
-    if(strpos($file, 'gtranslate') !== false)
+    if(strpos($file, 'jai-free-translator') !== false)
         return false;
 
     return $do_tag_minification;
@@ -2753,7 +2696,7 @@ add_filter('w3tc_minify_js_do_tag_minification', 'w3tc_cache_exclude_js_gtransla
 // WP Optimize
 function wpo_cache_exclude_js_gtranslate($excluded_js) {
     if(is_array($excluded_js) or empty($excluded_js))
-        $excluded_js[] = 'gtranslate';
+        $excluded_js[] = 'jaitranslator';
 
     return $excluded_js;
 }

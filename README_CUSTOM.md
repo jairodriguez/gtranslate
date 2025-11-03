@@ -1,24 +1,24 @@
-# GTranslate Free - Custom Build
+# JAI Free Translator
 
-This is a customized version of the GTranslate WordPress plugin, simplified for free client-side translation with sub-directory URL support for Google Ads landing pages.
+This is a WordPress translation plugin optimized for free client-side translation with clean sub-directory URLs perfect for Google Ads landing pages.
 
 ## Current Status: ✅ READY TO USE
 
 ### Implementation Complete
-✅ Plugin renamed to "GTranslate Free - Custom"
-✅ Removed all `pro_version` and `enterprise_version` payment features
-✅ Set default `url_structure` to `'sub_directory'` for Google Ads
-✅ Simplified `url_addon/config.php` (removed server pool)
-✅ Rewrote `url_addon/gtranslate.php` as redirect handler (no external servers)
-✅ Created `.htaccess-sample` with rewrite rules
-✅ Updated `js/base.js` to auto-detect and translate from URL parameter
+✅ Plugin rebranded to "JAI Free Translator"
+✅ Removed all paid/pro features
+✅ Default `url_structure` set to `'sub_directory'` for Google Ads
+✅ Simplified configuration
+✅ URL redirect handler (no external servers)
+✅ Clean .htaccess rewrite rules
+✅ Auto-translation from URL parameters
 ✅ Free Google Translate Widget - **NO API COSTS**
 
 ### How It Works: Hybrid Client-Side Approach
 
 **1. Clean URLs for Google Ads**
 - Visitor goes to: `yoursite.com/es/landing-page`
-- .htaccess rewrites to: `url_addon/gtranslate.php?glang=es&gurl=landing-page`
+- .htaccess rewrites to: `url_addon/jai-translator.php?glang=es&gurl=landing-page`
 
 **2. Smart Redirect**
 - PHP handler redirects to: `yoursite.com/landing-page?gt_lang=es`
@@ -59,9 +59,9 @@ This is a customized version of the GTranslate WordPress plugin, simplified for 
 
 ## Installation
 
-1. Copy this directory to `wp-content/plugins/gtranslate-custom/`
+1. Copy this directory to `wp-content/plugins/jai-free-translator/`
 2. Activate the plugin in WordPress admin
-3. Go to Settings → GTranslate to configure
+3. Go to Settings → JAI Translator to configure
 4. Select languages and widget style
 
 ## For Google Ads Landing Pages

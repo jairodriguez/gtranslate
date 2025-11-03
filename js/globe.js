@@ -1,9 +1,9 @@
 (function(){
-    var gt = window.gtranslateSettings || {};
+    var gt = window.jaitranslatorSettings || {};
     gt = gt[document.currentScript.getAttribute('data-gt-widget-id')] || gt;
 
     if(gt.default_language == null) {
-        console.log('gtranslateSettings is not properly initialized');
+        console.log('jaitranslatorSettings is not properly initialized');
         return;
     }
 
@@ -14,7 +14,7 @@
     var languages = gt.languages||Object.keys(lang_array_english);
     var alt_flags = gt.alt_flags||{};
     var flag_size = gt.flag_size||32;
-    var flags_location = gt.flags_location||'https://cdn.gtranslate.net/flags/svg/';
+    var flags_location = gt.flags_location||'https://cdn.jaitranslator.net/flags/svg/';
     var globe_size = gt.globe_size||60;
     var globe_color = gt.globe_color||'#66aaff';
     var url_structure = gt.url_structure||'none';
@@ -25,14 +25,14 @@
 
     var native_language_names = gt.native_language_names||false;
     var detect_browser_language = gt.detect_browser_language||false;
-    var wrapper_selector = gt.wrapper_selector||'.gtranslate_wrapper';
+    var wrapper_selector = gt.wrapper_selector||'.jaitranslator_wrapper';
 
     var custom_css = gt.custom_css||'';
     var lang_array = native_language_names && lang_array_native || lang_array_english;
 
     var u_class = '.gt_container-'+Array.from('globe'+wrapper_selector).reduce(function(h,c){return 0|(31*h+c.charCodeAt(0))},0).toString(36);
 
-    var widget_code = '<!-- GTranslate: https://gtranslate.com -->';
+    var widget_code = '<!-- JAITranslate: https://jaitranslator.com -->';
     var widget_css = '';
 
     // helper functions
@@ -110,9 +110,9 @@
     widget_css += '.gsatelite:hover img{opacity:1;transform:scale(1.3)}';
     widget_css += '.gsatelite.gt-current-lang img{opacity:1;box-shadow:rgba(0,0,0,0.5) 0 0 35px 20px;transform:scale(1.3)}';
 
-    if(url_structure == 'none') {
+    // Add hidden Google Translate element for client-side translation (sub_directory mode)
+    if(url_structure == 'sub_directory' || url_structure == 'none') {
         widget_code += '<div id="google_translate_element2"></div>';
-
         widget_css += "div.skiptranslate,#google_translate_element2{display:none!important}";
         widget_css += "body{top:0!important}";
         widget_css += "font font{background-color:transparent!important;box-shadow:none!important;position:initial!important}";
@@ -122,11 +122,16 @@
         widget_code = '<div class="gt_switcher_wrapper" style="position:fixed;'+vertical_position+':15px;'+horizontal_position+':15px;z-index:999999;">' + widget_code + '</div>';
 
     var add_css = document.createElement('style');
-    add_css.classList.add('gtranslate_css');
+    add_css.classList.add('jaitranslator_css');
     add_css.textContent = widget_css;
     document.head.appendChild(add_css);
 
     document.querySelectorAll(wrapper_selector).forEach(function(e){e.classList.add(u_class.substring(1));e.innerHTML+=widget_code});
+
+    // Auto-translation for sub-directory URLs (e.g., /es/page?gt_lang=es)
+    // Check if we have a gt_lang parameter from the URL rewrite handler
+    var url_params = new URLSearchParams(window.location.search);
+    var auto_lang = url_params.get('gt_lang');
 
     var gt_globe_open = false;
     function gt_render_satelites(el) {
@@ -161,23 +166,30 @@
         e.addEventListener('pointerenter', function(evt) {evt.target.parentNode.querySelectorAll('.gsatelite img:not([src])').forEach(function(img){img.setAttribute('src', img.getAttribute('data-gt-lazy-src'))})});
     });
 
-    if(url_structure == 'none') {
+    if(url_structure == 'none' || url_structure == 'sub_directory') {
         function get_current_lang() {var keyValue = document.cookie.match('(^|;) ?googtrans=([^;]*)(;|$)');return keyValue ? keyValue[2].split('/')[2] : null;}
         function fire_event(element,event){try{if(document.createEventObject){var evt=document.createEventObject();element.fireEvent('on'+event,evt)}else{var evt=document.createEvent('HTMLEvents');evt.initEvent(event,true,true);element.dispatchEvent(evt)}}catch(e){}}
         function load_tlib(){if(!window.gt_translate_script){window.gt_translate_script=document.createElement('script');gt_translate_script.src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit2';document.body.appendChild(gt_translate_script);}}
-        window.doGTranslate = function(lang_pair){if(lang_pair.value)lang_pair=lang_pair.value;if(lang_pair=='')return;var lang=lang_pair.split('|')[1];if(get_current_lang() == null && lang == lang_pair.split('|')[0])return;var teCombo;var sel=document.getElementsByTagName('select');for(var i=0;i<sel.length;i++)if(sel[i].className.indexOf('goog-te-combo')!=-1){teCombo=sel[i];break;}if(document.getElementById('google_translate_element2')==null||document.getElementById('google_translate_element2').innerHTML.length==0||teCombo.length==0||teCombo.innerHTML.length==0){setTimeout(function(){doGTranslate(lang_pair)},500)}else{teCombo.value=lang;fire_event(teCombo,'change');fire_event(teCombo,'change')}}
+        window.doJAITranslate = function(lang_pair){if(lang_pair.value)lang_pair=lang_pair.value;if(lang_pair=='')return;var lang=lang_pair.split('|')[1];if(get_current_lang() == null && lang == lang_pair.split('|')[0])return;var teCombo;var sel=document.getElementsByTagName('select');for(var i=0;i<sel.length;i++)if(sel[i].className.indexOf('goog-te-combo')!=-1){teCombo=sel[i];break;}if(document.getElementById('google_translate_element2')==null||document.getElementById('google_translate_element2').innerHTML.length==0||teCombo.length==0||teCombo.innerHTML.length==0){setTimeout(function(){doJAITranslate(lang_pair)},500)}else{teCombo.value=lang;fire_event(teCombo,'change');fire_event(teCombo,'change')}}
         window.googleTranslateElementInit2=function(){new google.translate.TranslateElement({pageLanguage:default_language,autoDisplay:false},'google_translate_element2')};
 
-        if(current_lang != default_language)
+        // Auto-trigger translation if gt_lang parameter is present (from sub-directory URL)
+        if(auto_lang && auto_lang != default_language && languages.includes(auto_lang)) {
             load_tlib();
-        else
+            window.gt_translate_script.onload = function(){
+                doJAITranslate(default_language+'|'+auto_lang);
+            };
+        } else if(current_lang != default_language) {
+            load_tlib();
+        } else {
             document.querySelectorAll(u_class).forEach(function(e){e.addEventListener('pointerenter',load_tlib)});
+        }
 
         document.querySelectorAll(u_class + ' a[data-gt-lang]').forEach(function(e){e.addEventListener('click', function(evt) {
             evt.preventDefault();
             document.querySelectorAll(u_class + ' a.gt-current-lang').forEach(function(e){e.classList.remove('gt-current-lang')});
             e.classList.add('gt-current-lang');
-            doGTranslate(default_language+'|'+e.getAttribute('data-gt-lang'));
+            doJAITranslate(default_language+'|'+e.getAttribute('data-gt-lang'));
         })});
     }
 
@@ -196,7 +208,7 @@
             if(url_structure == 'none') {
                 load_tlib();
                 window.gt_translate_script.onload=function(){
-                    doGTranslate(default_language+'|'+preferred_language);
+                    doJAITranslate(default_language+'|'+preferred_language);
                     document.querySelectorAll(u_class+' a.gt-current-lang').forEach(function(e){e.classList.remove('gt-current-lang')});
                     document.querySelector(u_class+' a[data-gt-lang="'+preferred_language+'"]').classList.add('gt-current-lang');
                 };
