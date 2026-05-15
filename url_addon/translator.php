@@ -163,19 +163,21 @@ class GT_Translator {
     private function translate_with_deepl($texts) {
         $url = 'https://api-free.deepl.com/v2/translate';
 
-        // DeepL language code mapping
         $target_lang = $this->map_deepl_language($this->target_lang);
 
         $data = array(
-            'auth_key' => $this->api_key,
             'text' => $texts,
             'source_lang' => strtoupper($this->source_lang),
             'target_lang' => strtoupper($target_lang),
-            'tag_handling' => 'html',
-            'preserve_formatting' => '1'
+            'tag_handling' => 'html'
         );
 
-        $response = $this->make_api_request($url, $data);
+        $headers = array(
+            'Authorization: DeepL-Auth-Key ' . $this->api_key,
+            'Content-Type: application/json'
+        );
+
+        $response = $this->make_api_request_json($url, $data, $headers);
 
         if ($response === false) {
             return false;
@@ -296,6 +298,42 @@ class GT_Translator {
 
         if ($http_code !== 200) {
             error_log('Translation API HTTP error: ' . $http_code . ' - ' . $response);
+            return false;
+        }
+
+        return $response;
+    }
+
+    private function make_api_request_json($url, $data, $headers = array()) {
+        $ch = curl_init();
+
+        $post_fields = json_encode($data);
+        if ($post_fields === false) {
+            error_log('DeepL API JSON encode error');
+            return false;
+        }
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if (curl_errno($ch)) {
+            error_log('DeepL API cURL error: ' . curl_error($ch));
+            curl_close($ch);
+            return false;
+        }
+
+        curl_close($ch);
+
+        if ($http_code !== 200) {
+            error_log('DeepL API HTTP error: ' . $http_code . ' - ' . $response);
             return false;
         }
 
