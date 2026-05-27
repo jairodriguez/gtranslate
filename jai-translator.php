@@ -1120,15 +1120,15 @@ EOT;
                         <td class="option_name"><?php esc_html_e('Sub-directory URL structure', 'jai-free-translator'); ?>:<br><code><small>https://example.com/<b>es</b>/</small></code></td>
                         <td><strong><?php esc_html_e('Enabled by default', 'jai-free-translator'); ?></strong> <small>(<?php esc_html_e('Configure translation API below for server-side SEO', 'jai-free-translator'); ?>)</small></td>
                     </tr>
-                    <tr id="url_translation_option" style="display:none;">
+                    <tr id="url_translation_option">
                         <td class="option_name"><?php esc_html_e('Enable URL Translation', 'jai-free-translator'); ?>:</td>
                         <td><input id="url_translation" name="url_translation" value="1" type="checkbox"/></td>
                     </tr>
-                    <tr id="hreflang_tags_option" style="display:none;">
+                    <tr id="hreflang_tags_option">
                         <td class="option_name"><?php esc_html_e('Add hreflang tags', 'jai-free-translator'); ?>:</td>
                         <td><input id="add_hreflang_tags" name="add_hreflang_tags" value="1" type="checkbox"/></td>
                     </tr>
-                    <tr id="email_translation_option" style="display:none;">
+                    <tr id="email_translation_option">
                         <td class="option_name"><?php esc_html_e('Enable WooCommerce Email Translation', 'jai-free-translator'); ?>:</td>
                         <td><input id="email_translation" name="email_translation" value="1" type="checkbox"/></td>
                     </tr>
