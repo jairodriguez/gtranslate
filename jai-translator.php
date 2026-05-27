@@ -684,7 +684,7 @@ function RefreshDoWidgetCode() {
     if(widget_look == 'dropdown' || widget_look == 'globe' || widget_look == 'lang_names' || widget_look == 'lang_codes')
         jQuery('#incl_langs'+default_language).prop('checked', true);
 
-    if(pro_version || enterprise_version) {
+    if(pro_version || enterprise_version || true) {
         if(enterprise_version) {
             jQuery('#custom_domains_option').show();
             if(custom_domains)
