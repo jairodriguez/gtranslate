@@ -129,7 +129,7 @@ class JAI_Translator extends WP_Widget {
                         $query_vars['page_id'] = $page_on_front;
                     }
                 } else {
-                    // Set pagename to let WordPress find the page
+                    $query_vars['name'] = $path;
                     $query_vars['pagename'] = $path;
                 }
 
