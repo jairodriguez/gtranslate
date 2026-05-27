@@ -3,7 +3,7 @@
 Plugin Name: JAI Free Translator
 Plugin URI: https://withjai.com
 Description: Free multilingual translation for your website with sub-directory URL support for Google Ads landing pages.
-Version: 1.3.0
+Version: 1.3.1
 Author: JAI
 Author URI: https://withjai.com
 Text Domain: jai-free-translator
@@ -1596,7 +1596,7 @@ EOT;
             // todo: use insert_with_markers functions instead
             if(is_writeable($htaccess_file)) {
                 $htaccess = file_get_contents($htaccess_file);
-                if(strpos($htaccess, 'gtranslate.php') === false) { // no config rules
+                if(strpos($htaccess, 'jai-translator.php') === false && strpos($htaccess, 'gtranslate.php') === false) { // no config rules
                     $rewrite_rules = file_get_contents(dirname(__FILE__) . '/url_addon/rewrite.txt');
                     $rewrite_rules = str_replace('JAITRANSLATOR_PLUGIN_PATH', str_replace(str_replace(array('https:', 'http:'), array(':', ':'), home_url()), '', str_replace(array('https:', 'http:'), array(':', ':'), plugins_url())) . '/jai-free-translator', $rewrite_rules);
 

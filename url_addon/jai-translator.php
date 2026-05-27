@@ -19,6 +19,16 @@ if(!isset($_GET['glang']) || !isset($_GET['gurl'])) {
 $glang = strtolower(trim($_GET['glang']));
 $gurl = $_GET['gurl'];
 
+$static_extensions = array('css','js','png','jpg','jpeg','gif','svg','ico','webp','woff','woff2','ttf','eot','mp4','mp3','webm','ogg','pdf','zip');
+$url_ext = strtolower(pathinfo(parse_url($gurl, PHP_URL_PATH), PATHINFO_EXTENSION));
+if(in_array($url_ext, $static_extensions)) {
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'];
+    $asset_url = $protocol . '://' . $host . '/' . ltrim($gurl, '/');
+    header('Location: ' . $asset_url, true, 301);
+    exit;
+}
+
 // Build the original page URL
 $page_url = '/' . ltrim($gurl, '/');
 
