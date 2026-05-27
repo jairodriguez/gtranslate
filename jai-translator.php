@@ -3,7 +3,7 @@
 Plugin Name: JAI Free Translator
 Plugin URI: https://withjai.com
 Description: Free multilingual translation for your website with sub-directory URL support for Google Ads landing pages.
-Version: 1.2.0
+Version: 1.3.0
 Author: JAI
 Author URI: https://withjai.com
 Text Domain: jai-free-translator
@@ -684,18 +684,8 @@ function RefreshDoWidgetCode() {
     if(widget_look == 'dropdown' || widget_look == 'globe' || widget_look == 'lang_names' || widget_look == 'lang_codes')
         jQuery('#incl_langs'+default_language).prop('checked', true);
 
-    if(pro_version || enterprise_version || true) {
-        if(enterprise_version) {
-            jQuery('#custom_domains_option').show();
-            if(custom_domains)
-                jQuery('.custom_domains_list').show();
-            else
-                jQuery('.custom_domains_list').hide();
-        } else {
-            jQuery('#custom_domains_option').hide();
-            jQuery('.custom_domains_list').hide();
-        }
-
+        jQuery('#custom_domains_option').hide();
+        jQuery('.custom_domains_list').hide();
         jQuery('#url_translation_option').show();
         jQuery('#hreflang_tags_option').show();
         jQuery('#email_translation_option').show();
@@ -703,13 +693,6 @@ function RefreshDoWidgetCode() {
             jQuery('#email_translation_debug_option').show();
         else
             jQuery('#email_translation_debug_option').hide();
-    } else {
-        jQuery('#custom_domains_option').hide();
-        jQuery('#url_translation_option').hide();
-        jQuery('#hreflang_tags_option').hide();
-        jQuery('#email_translation_option').hide();
-        jQuery('#email_translation_debug_option').hide();
-    }
 
     if(widget_look == 'dropdown' || widget_look == 'flags_dropdown' || widget_look == 'globe' || widget_look == 'lang_names' || widget_look == 'lang_codes') {
         jQuery('#dropdown_languages_option').show();
