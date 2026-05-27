@@ -3,7 +3,7 @@
 Plugin Name: JAI Free Translator
 Plugin URI: https://withjai.com
 Description: Free multilingual translation for your website with sub-directory URL support for Google Ads landing pages.
-Version: 1.1.0
+Version: 1.2.0
 Author: JAI
 Author URI: https://withjai.com
 Text Domain: jai-free-translator
