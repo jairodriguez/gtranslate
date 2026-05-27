@@ -843,7 +843,7 @@ jQuery('#globe_color').val('$globe_color');
 // Custom version: hide pro/enterprise options
 jQuery('#custom_domains_option').hide();
 jQuery('#url_translation_option').hide();
-jQuery('#hreflang_tags_option').hide();
+jQuery('#hreflang_tags_option').show();
 jQuery('#email_translation_option').show();
 if(jQuery('#email_translation:checked').length)
     jQuery('#email_translation_debug_option').show();
@@ -1721,7 +1721,7 @@ EOT;
         $data['custom_domains'] = isset($data['custom_domains']) ? $data['custom_domains'] : '';
         $data['custom_domains_data'] = isset($data['custom_domains_data']) ? $data['custom_domains_data'] : '';
         $data['url_translation'] = isset($data['url_translation']) ? $data['url_translation'] : '';
-        $data['add_hreflang_tags'] = isset($data['add_hreflang_tags']) ? $data['add_hreflang_tags'] : '';
+        $data['add_hreflang_tags'] = isset($data['add_hreflang_tags']) ? $data['add_hreflang_tags'] : '1';
         $data['email_translation'] = isset($data['email_translation']) ? $data['email_translation'] : '';
         $data['email_translation_debug'] = isset($data['email_translation_debug']) ? $data['email_translation_debug'] : '';
         $data['show_in_menu'] = isset($data['show_in_menu']) ? $data['show_in_menu'] : ((isset($data['show_in_primary_menu']) and $data['show_in_primary_menu'] == 1) ? 'primary' : '');
