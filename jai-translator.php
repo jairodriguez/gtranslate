@@ -2628,6 +2628,301 @@ if($data['enterprise_version']) {
     add_filter('allowed_redirect_hosts', 'gt_allowed_redirect_hosts');
 }
 
+/**
+ * SEO Enhancements for Translated Pages
+ *
+ * Fixes 4 critical SEO issues when using sub-directory URL structure:
+ * 1. Self-referencing canonical URLs (prevents Google from ignoring translated pages)
+ * 2. Translated meta descriptions (Yoast SEO)
+ * 3. Translated OpenGraph tags (og:title, og:description)
+ * 4. Per-language XML sitemaps (/es/sitemap.xml, /fr/sitemap.xml, etc.)
+ */
+if($data['url_structure'] == 'sub_directory') {
+
+    /**
+     * Get current language from glang parameter set by rewrite rules.
+     *
+     * @return string|false Language code (e.g. 'es') or false if not a translated page.
+     */
+    function jaitranslator_get_current_lang() {
+        if(!isset($_GET['glang']) || empty($_GET['glang'])) {
+            return false;
+        }
+
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
+
+        $lang = strtolower(sanitize_text_field($_GET['glang']));
+
+        if($lang === $data['default_language']) {
+            return false;
+        }
+
+        return $lang;
+    }
+
+    /**
+     * Build a language-prefixed URL from a given URL.
+     * Strips any existing language prefix first, then prepends the target language.
+     *
+     * @param string $url Original URL.
+     * @param string $lang Target language code.
+     * @return string URL with language prefix.
+     */
+    function jaitranslator_prefix_url($url, $lang) {
+        $parsed = parse_url($url);
+        if(!isset($parsed['scheme']) || !isset($parsed['host'])) {
+            return $url;
+        }
+
+        $path = isset($parsed['path']) ? $parsed['path'] : '/';
+
+        // Strip any existing language prefix from the path
+        $all_langs = implode('|', array_keys(JAI_Translator::$lang_array));
+        $all_langs = str_replace('-', '\-', $all_langs);
+        $path = preg_replace('#^/(' . $all_langs . ')(/|$)#', '/', $path);
+
+        // Prepend target language
+        $path = '/' . $lang . $path;
+
+        // Ensure trailing slash
+        if(substr($path, -1) !== '/') {
+            $path .= '/';
+        }
+
+        $result = $parsed['scheme'] . '://' . $parsed['host'] . $path;
+
+        if(isset($parsed['query']) && $parsed['query']) {
+            $result .= '?' . $parsed['query'];
+        }
+
+        return $result;
+    }
+
+    // ========================================
+    // Fix 1: Self-referencing canonical URLs
+    // ========================================
+
+    function jaitranslator_fix_canonical($canonical) {
+        $lang = jaitranslator_get_current_lang();
+        if(!$lang) {
+            return $canonical;
+        }
+
+        return jaitranslator_prefix_url($canonical, $lang);
+    }
+    add_filter('wpseo_canonical', 'jaitranslator_fix_canonical', 10, 1);
+    add_filter('get_canonical_url', 'jaitranslator_fix_canonical', 10, 1);
+    add_filter('wpseo_opengraph_url', 'jaitranslator_fix_canonical', 10, 1);
+
+    // ========================================
+    // Fix 2 & 3: Translate meta description and OG tags
+    // ========================================
+
+    function jaitranslator_translate_seo_text($text) {
+        $lang = jaitranslator_get_current_lang();
+        if(!$lang || empty($text)) {
+            return $text;
+        }
+
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
+
+        $api_provider = isset($data['translation_api_provider']) ? $data['translation_api_provider'] : '';
+        $api_key = '';
+
+        if($api_provider === 'deepl') {
+            $api_key = isset($data['deepl_api_key']) ? $data['deepl_api_key'] : '';
+        } elseif($api_provider === 'google') {
+            $api_key = isset($data['google_translate_api_key']) ? $data['google_translate_api_key'] : '';
+        }
+
+        if(empty($api_key)) {
+            return $text;
+        }
+
+        require_once dirname(__FILE__) . '/url_addon/translator.php';
+        $translator = new GT_Translator($data['default_language'], $lang, $api_provider, $api_key);
+        $translations = $translator->translate_texts(array($text));
+
+        if(is_array($translations) && !empty($translations[0])) {
+            return $translations[0];
+        }
+
+        return $text;
+    }
+
+    add_filter('wpseo_metadesc', 'jaitranslator_translate_seo_text', 10, 1);
+    add_filter('wpseo_opengraph_desc', 'jaitranslator_translate_seo_text', 10, 1);
+    add_filter('wpseo_title', 'jaitranslator_translate_seo_text', 10, 1);
+    add_filter('wpseo_opengraph_title', 'jaitranslator_translate_seo_text', 10, 1);
+    add_filter('document_title_parts', function($title_parts) {
+        $lang = jaitranslator_get_current_lang();
+        if(!$lang) {
+            return $title_parts;
+        }
+
+        foreach($title_parts as $key => $value) {
+            $title_parts[$key] = jaitranslator_translate_seo_text($value);
+        }
+
+        return $title_parts;
+    }, 10, 1);
+
+    // ========================================
+    // Fix 4: Per-language XML sitemaps
+    // ========================================
+
+    /**
+     * Add rewrite rule for /{lang}/sitemap.xml
+     * Registered before the general language rule so it takes priority.
+     */
+    function jaitranslator_sitemap_rewrite_rules($rules) {
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
+
+        if($data['url_structure'] !== 'sub_directory') {
+            return $rules;
+        }
+
+        // Build language codes pattern
+        $lang_codes = implode('|', array_keys(JAI_Translator::$lang_array));
+        $lang_codes = str_replace('-', '\-', $lang_codes);
+
+        $new_rules = array();
+        $new_rules['^(' . $lang_codes . ')/sitemap\.xml$'] = 'index.php?jai_sitemap=1&glang=$matches[1]';
+
+        return array_merge($new_rules, $rules);
+    }
+    add_filter('rewrite_rules_array', 'jaitranslator_sitemap_rewrite_rules', 5, 1);
+
+    /**
+     * Register query var for sitemap detection.
+     */
+    function jaitranslator_sitemap_query_var($vars) {
+        $vars[] = 'jai_sitemap';
+        return $vars;
+    }
+    add_filter('query_vars', 'jaitranslator_sitemap_query_var', 10, 1);
+
+    /**
+     * Generate XML sitemap for the requested language.
+     * Includes all published pages and posts with their translated URLs.
+     */
+    function jaitranslator_generate_sitemap() {
+        if(!get_query_var('jai_sitemap')) {
+            return;
+        }
+
+        $lang = get_query_var('glang');
+        if(!$lang) {
+            return;
+        }
+
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
+
+        // Don't generate for default language (Yoast handles that)
+        if($lang === $data['default_language']) {
+            return;
+        }
+
+        $site_url = home_url();
+        $lang_prefix = '/' . $lang;
+
+        // Collect all URLs to include
+        $urls = array();
+
+        // Add homepage
+        $urls[] = array(
+            'loc' => $site_url . $lang_prefix . '/',
+            'priority' => '1.0',
+            'changefreq' => 'weekly',
+        );
+
+        // Add all published pages
+        $pages = get_posts(array(
+            'post_type' => 'page',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'fields' => 'ids',
+        ));
+
+        foreach($pages as $page_id) {
+            $permalink = get_permalink($page_id);
+            if(!$permalink) continue;
+
+            // Convert to language-prefixed URL
+            $path = parse_url($permalink, PHP_URL_PATH);
+            if($path && $path !== '/') {
+                $urls[] = array(
+                    'loc' => $site_url . $lang_prefix . $path,
+                    'priority' => '0.8',
+                    'changefreq' => 'monthly',
+                );
+            }
+        }
+
+        // Add all published posts
+        $posts = get_posts(array(
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'numberposts' => 500,
+            'orderby' => 'date',
+            'order' => 'DESC',
+        ));
+
+        foreach($posts as $post) {
+            $permalink = get_permalink($post);
+            if(!$permalink) continue;
+
+            $path = parse_url($permalink, PHP_URL_PATH);
+            if($path) {
+                $urls[] = array(
+                    'loc' => $site_url . $lang_prefix . $path,
+                    'priority' => '0.6',
+                    'changefreq' => 'monthly',
+                    'lastmod' => $post->post_modified,
+                );
+            }
+        }
+
+        // Output XML
+        header('Content-Type: application/xml; charset=UTF-8');
+        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+        foreach($urls as $url) {
+            echo "  <url>\n";
+            echo "    <loc>" . esc_url($url['loc']) . "</loc>\n";
+            echo "    <priority>" . $url['priority'] . "</priority>\n";
+            echo "    <changefreq>" . $url['changefreq'] . "</changefreq>\n";
+            if(isset($url['lastmod']) && $url['lastmod']) {
+                echo "    <lastmod>" . esc_html(date('c', strtotime($url['lastmod']))) . "</lastmod>\n";
+            }
+            echo "  </url>\n";
+        }
+
+        echo '</urlset>';
+        exit;
+    }
+    add_action('template_redirect', 'jaitranslator_generate_sitemap', 1);
+
+    /**
+     * Re-flush rewrite rules on plugin activation to include sitemap rules.
+     * (Already called in activate(), but this ensures sitemap rules register.)
+     */
+    function jaitranslator_activate_sitemap_rules() {
+        $data = get_option('JAI_Translator');
+        JAI_Translator::load_defaults($data);
+
+        if($data['url_structure'] === 'sub_directory') {
+            flush_rewrite_rules();
+        }
+    }
+    add_action('admin_init', 'jaitranslator_activate_sitemap_rules', 1);
+}
+
 // exclude Autoptimize minification
 function ao_cache_exclude_js_gtranslate($exclude_js) {
     if(is_string($exclude_js))
